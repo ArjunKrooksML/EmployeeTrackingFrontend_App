@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* Calendar styles */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 0.8rem;
+}
+
+.cal-day {
+  text-align: center;
+  font-weight: 600;
+  color: #64748b;
+  padding-bottom: 2px;
+}
+
+.cal-cell {
+  border-radius: 0.6rem;
+  border: 1px solid #e2e8f0;
+  padding: 0.45rem 0.25rem;
+  text-align: center;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cal-future {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.cal-present {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #166534;
+}
+
+.cal-absent {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.cal-late {
+  background: #ffedd5;
+  border-color: #f97316;
+  color: #9a3412;
+}
+
+/* Task styles */
+.task-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-top: 8px;
+  width: 100%;
+  border-radius: 0.9rem;
+  border: 1px solid #e2e8f0;
+  background: #f9fafb;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.task-row:hover {
+  box-shadow: 0 4px 6px rgba(15, 23, 42, 0.08);
+}
+
+.task-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.task-sub {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.task-desc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.task-tags {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.task-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-head-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.task-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pill-prio-low {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.pill-prio-medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pill-prio-high {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.pill-prio-urgent {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.pill-status-todo {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.pill-status-in_progress {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.pill-status-completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.pill-status-blocked {
+  background: #fee2e2;
+  color: #b91c1c;
+}
