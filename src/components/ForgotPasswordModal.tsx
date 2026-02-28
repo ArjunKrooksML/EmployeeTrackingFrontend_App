@@ -1,4 +1,5 @@
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { X, Mail, Key, ShieldCheck, ArrowRight } from 'lucide-react';
 import { api } from '../lib/api';
 
