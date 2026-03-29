@@ -29,6 +29,8 @@ export interface Attendance {
   date: string;
   attendance: 'present' | 'absent' | 'late';
   checkin?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   created_at: string;
 }
 
@@ -129,6 +131,7 @@ export interface Employee {
   designation_id?: number | null;
   year_joined?: string | null;
   salary: number;
+  role?: string;
 }
 
 export const api = {
@@ -199,14 +202,39 @@ export const api = {
     },
   },
   attendance: {
-    checkIn: async (employeeId: number): Promise<Attendance> => {
-      return apiRequest<Attendance>(`/attendance/checkin?employee_id=${employeeId}`, {
-        method: 'POST',
-      });
+    checkIn: async (employeeId: number, lat?: number, lng?: number): Promise<Attendance> => {
+      let url = `/attendance/checkin?employee_id=${employeeId}`;
+      if (lat !== undefined && lng !== undefined) {
+        url += `&lat=${lat}&lng=${lng}`;
+      }
+      return apiRequest<Attendance>(url, { method: 'POST' });
     },
     getMyAttendance: async (employeeId: number): Promise<Attendance[]> => {
       return apiRequest<Attendance[]>(`/attendance/employee/${employeeId}`);
     },
+    getAll: async (): Promise<(Attendance & { employee_name: string })[]> => {
+      return apiRequest<(Attendance & { employee_name: string })[]>('/attendance/all');
+    },
+  },
+  manage: {
+    getEmployees: async (): Promise<Employee[]> =>
+      apiRequest<Employee[]>('/admin/employees'),
+    createEmployee: async (data: any): Promise<Employee> =>
+      apiRequest<Employee>('/admin/employees/create', { method: 'POST', body: JSON.stringify(data) }),
+    updateEmployee: async (id: number, data: any): Promise<Employee> =>
+      apiRequest<Employee>(`/admin/employees/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteEmployee: async (id: number): Promise<void> =>
+      apiRequest<void>(`/admin/employees/${id}`, { method: 'DELETE' }),
+    getProjects: async (): Promise<Project[]> =>
+      apiRequest<Project[]>('/admin/projects'),
+    createProject: async (data: any): Promise<Project> =>
+      apiRequest<Project>('/admin/projects/create', { method: 'POST', body: JSON.stringify(data) }),
+    getTasks: async (): Promise<Task[]> =>
+      apiRequest<Task[]>('/admin/tasks'),
+    createTask: async (data: any): Promise<Task> =>
+      apiRequest<Task>('/admin/tasks/create', { method: 'POST', body: JSON.stringify(data) }),
+    updateTask: async (id: number, data: any): Promise<Task> =>
+      apiRequest<Task>(`/admin/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   },
 };
 

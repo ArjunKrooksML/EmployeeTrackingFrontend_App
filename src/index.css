@@ -10,6 +10,18 @@ body {
   color: #0f172a;
 }
 
+/* iOS safe area bottom padding for bottom nav */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+}
+
+@media (max-width: 767px) {
+  .cal-cell {
+    padding: 0.6rem 0.15rem;
+    font-size: 0.75rem;
+  }
+}
+
 /* Calendar styles */
 .cal-grid {
   display: grid;
