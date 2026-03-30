@@ -143,6 +143,7 @@ export default function AttView({ user }: { user: User }) {
             if (rec) {
               cls = rec.attendance === 'present' ? 'cal-cell cal-present'
                 : rec.attendance === 'absent' ? 'cal-cell cal-absent'
+                : rec.attendance === 'pending' ? 'cal-cell cal-pending'
                 : 'cal-cell cal-late';
             } else {
               cls = 'cal-cell cal-absent';
@@ -170,8 +171,14 @@ export default function AttView({ user }: { user: User }) {
             </div>
             <div className="flex items-center gap-2">
               <span className="font-medium text-slate-700">Status:</span>
-              <span className={`font-medium ${selRec.attendance === 'present' ? 'text-yellow-600' : selRec.attendance === 'absent' ? 'text-red-600' : 'text-orange-600'}`}>
-                {selRec.attendance === 'present' ? 'Present (Under Review)' : selRec.attendance.charAt(0).toUpperCase() + selRec.attendance.slice(1)}
+              <span className={`font-medium ${
+                selRec.attendance === 'present' ? 'text-green-600'
+                : selRec.attendance === 'absent' ? 'text-red-600'
+                : selRec.attendance === 'pending' ? 'text-yellow-600'
+                : 'text-orange-600'
+              }`}>
+                {selRec.attendance === 'pending' ? 'Under Review'
+                  : selRec.attendance.charAt(0).toUpperCase() + selRec.attendance.slice(1)}
               </span>
             </div>
             {selRec.lat && selRec.lng && (

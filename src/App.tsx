@@ -88,9 +88,9 @@ function App() {
   const isManage = (tab as string).startsWith('mg_');
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-violet-50/40 flex flex-col">
       {/* Top nav */}
-      <nav className="bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-500 text-white shadow-lg">
+      <nav className="bg-gradient-to-r from-violet-600 via-purple-600 to-rose-500 text-white shadow-lg">
         <div className="px-4 sm:px-8 flex justify-between items-center h-14">
           <div className="flex items-center gap-3">
             <img src="/svaas.png" alt="SVAAS" className="h-8 w-8 rounded-lg object-cover shadow border border-white/40" />
@@ -124,7 +124,7 @@ function App() {
       {/* Desktop layout: sidebar + content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — desktop only */}
-        <aside className="hidden md:flex w-56 bg-slate-900 text-slate-100 flex-col px-3 py-5 space-y-1 shadow-xl">
+        <aside className="hidden md:flex w-56 bg-indigo-950 text-slate-100 flex-col px-3 py-5 space-y-1 shadow-xl">
           {[
             { key: 'att', icon: <CalendarDays size={17} />, label: 'Attendance' },
             { key: 'tasks', icon: <ListChecks size={17} />, label: 'My Tasks' },
@@ -132,7 +132,11 @@ function App() {
             { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
           ].map(item => (
             <button key={item.key} onClick={() => setTab(item.key as Tab)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${tab === item.key ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                tab === item.key
+                  ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}>
               {item.icon}<span>{item.label}</span>
             </button>
           ))}
@@ -143,7 +147,11 @@ function App() {
               <div className="pt-3 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Manage</div>
               {manageSubs.filter(s => s.show).map(s => (
                 <button key={s.key} onClick={() => { setTab(s.key); setManageTab(s.key); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${tab === s.key ? 'bg-white/15 text-white' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                    tab === s.key
+                      ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  }`}>
                   <LayoutGrid size={17} /><span>{s.label}</span>
                 </button>
               ))}
@@ -153,7 +161,7 @@ function App() {
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 pb-24 md:pb-6">
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-100 p-4 sm:p-6">
+          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border-t-4 border-violet-500 border border-slate-100 p-4 sm:p-6">
             {tab === 'att' && <AttView user={user} />}
             {tab === 'tasks' && <TaskView user={user} />}
             {tab === 'proj' && <ProjView />}
@@ -200,8 +208,11 @@ function App() {
                   setTab(item.key as Tab);
                 }
               }}
-              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition ${active ? 'text-indigo-600' : 'text-slate-400'}`}
+              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition relative ${
+                active ? 'text-violet-600' : 'text-slate-400'
+              }`}
             >
+              {active && <span className="absolute top-0 inset-x-4 h-0.5 rounded-b-full bg-violet-500" />}
               {item.icon}
               <span>{item.label}</span>
             </button>

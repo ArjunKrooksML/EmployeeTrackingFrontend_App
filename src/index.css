@@ -45,7 +45,12 @@ body {
   text-align: center;
   font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+}
+
+.cal-cell:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(109, 40, 217, 0.12);
 }
 
 .cal-future {
@@ -69,6 +74,12 @@ body {
   background: #ffedd5;
   border-color: #f97316;
   color: #9a3412;
+}
+
+.cal-pending {
+  background: #fef9c3;
+  border-color: #eab308;
+  color: #854d0e;
 }
 
 /* Task styles */

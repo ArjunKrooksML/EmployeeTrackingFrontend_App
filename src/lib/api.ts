@@ -27,7 +27,7 @@ export interface Attendance {
   id: number;
   employee_id: number;
   date: string;
-  attendance: 'present' | 'absent' | 'late';
+  attendance: 'pending' | 'present' | 'absent' | 'late';
   checkin?: string | null;
   lat?: number | null;
   lng?: number | null;
@@ -203,11 +203,10 @@ export const api = {
   },
   attendance: {
     checkIn: async (employeeId: number, lat?: number, lng?: number): Promise<Attendance> => {
-      let url = `/attendance/checkin?employee_id=${employeeId}`;
-      if (lat !== undefined && lng !== undefined) {
-        url += `&lat=${lat}&lng=${lng}`;
-      }
-      return apiRequest<Attendance>(url, { method: 'POST' });
+      return apiRequest<Attendance>('/attendance/checkin', {
+        method: 'POST',
+        body: JSON.stringify({ employee_id: employeeId, lat: lat ?? null, lng: lng ?? null }),
+      });
     },
     getMyAttendance: async (employeeId: number): Promise<Attendance[]> => {
       return apiRequest<Attendance[]>(`/attendance/employee/${employeeId}`);
