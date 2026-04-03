@@ -7,7 +7,6 @@ type User = {
   phone_no?: string;
   id_type?: string;
   id_number?: string;
-  designation_id?: number;
   year_joined?: string;
   salary?: number;
 };
@@ -55,8 +54,7 @@ function MeView({ user }: Props) {
         {row('Phone number', user.phone_no)}
         {row('ID type', user.id_type)}
         {row('ID number', user.id_number)}
-        {row('Designation ID', user.designation_id)}
-        {row('Year joined', user.year_joined)}
+        {row('Joined', user.year_joined || 'N/A')}
         {row('Address', user.address)}
         {row('Salary', user.salary)}
       </div>

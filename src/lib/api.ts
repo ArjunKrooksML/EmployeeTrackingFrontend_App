@@ -128,11 +128,29 @@ export interface Employee {
   phone_no: string;
   id_type: string;
   id_number: string;
-  designation_id?: number | null;
   year_joined?: string | null;
   salary: number;
   role?: string;
 }
+
+export type Leave = {
+  id?: number;
+  employee_id: number;
+  leave_type: 'casual' | 'sick' | 'emergency';
+  leave_date: string;
+  day_type: 'full' | 'first_half' | 'second_half';
+  status: 'pending' | 'approved' | 'rejected';
+  reason?: string | null;
+  created_at?: string;
+};
+
+export type LeaveCreate = {
+  employee_id: number;
+  leave_type: string;
+  leave_date: string;
+  day_type: string;
+  reason?: string;
+};
 
 export const api = {
   auth: {
@@ -235,5 +253,21 @@ export const api = {
     updateTask: async (id: number, data: any): Promise<Task> =>
       apiRequest<Task>(`/admin/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   },
+  leaves: {
+    request: async (data: LeaveCreate): Promise<Leave> =>
+      apiRequest<Leave>('/leaves/request', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('empAccessToken')}`
+        },
+        body: JSON.stringify(data)
+      }),
+    getByEmployee: async (empId: number): Promise<Leave[]> =>
+      apiRequest<Leave[]>(`/leaves/employee/${empId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('empAccessToken')}`
+        }
+      }),
+  }
 };
 

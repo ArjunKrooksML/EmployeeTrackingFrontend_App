@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { CalendarDays, FolderKanban, ListChecks, UserCircle, Users, X, LayoutGrid } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CalendarDays, FolderKanban, ListChecks, UserCircle, Users, X, LayoutGrid, Home } from 'lucide-react';
+import Dashboard from './components/Dashboard';
 import AttView from './components/AttView';
 import TaskView from './components/TaskView';
 import ProjView from './components/ProjView';
+import LeaveView from './components/LeaveView';
 import MeView from './components/MeView';
 import Login from './components/Login';
 import ChangePasswordModal from './components/ChangePasswordModal';
@@ -27,7 +29,7 @@ type User = {
 };
 
 // Base tabs always visible
-type BaseTab = 'att' | 'tasks' | 'proj' | 'me';
+type BaseTab = 'dashboard' | 'att' | 'tasks' | 'proj' | 'leaves' | 'me';
 // Extra tabs for HR/GM
 type ManageTab = 'mg_emps' | 'mg_projs' | 'mg_tasks' | 'mg_att';
 type Tab = BaseTab | ManageTab;
@@ -38,7 +40,7 @@ function roleLabel(r?: string) {
 }
 
 function App() {
-  const [tab, setTab] = useState<Tab>('att');
+  const [tab, setTab] = useState<Tab>('dashboard');
   const [showMenu, setShowMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showChangePass, setShowChangePass] = useState(false);
@@ -55,6 +57,14 @@ function App() {
       return null;
     } catch { return null; }
   });
+
+  useEffect(() => {
+    if (user?.name) {
+      document.title = `${user.name} | SVAAS Inframax Solutions`;
+    } else {
+      document.title = 'Employee | SVAAS Inframax Solutions';
+    }
+  }, [user]);
 
   const handleLogin = (employee: User) => {
     setUser(employee);
@@ -111,8 +121,8 @@ function App() {
               </button>
               {showMenu && (
                 <div className="absolute right-0 mt-2 w-44 rounded-xl bg-white shadow-xl border border-slate-100 py-1 text-sm text-slate-700 z-50">
-                  <button className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-t-xl" onClick={() => { setShowMenu(false); setShowProfile(true); }}>View profile</button>
-                  <button className="w-full text-left px-3 py-2 hover:bg-slate-50" onClick={() => { setShowMenu(false); setShowChangePass(true); }}>Change password</button>
+                  <button className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-t-xl" onClick={() => { setShowMenu(false); setShowProfile(true); }}>View Profile</button>
+                  <button className="w-full text-left px-3 py-2 hover:bg-slate-50" onClick={() => { setShowMenu(false); setShowChangePass(true); }}>Change Password</button>
                   <button className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-b-xl" onClick={handleLogout}>Logout</button>
                 </div>
               )}
@@ -126,17 +136,18 @@ function App() {
         {/* Sidebar — desktop only */}
         <aside className="hidden md:flex w-56 bg-indigo-950 text-slate-100 flex-col px-3 py-5 space-y-1 shadow-xl">
           {[
+            { key: 'dashboard', icon: <Home size={17} />, label: 'Dashboard' },
             { key: 'att', icon: <CalendarDays size={17} />, label: 'Attendance' },
             { key: 'tasks', icon: <ListChecks size={17} />, label: 'My Tasks' },
             { key: 'proj', icon: <FolderKanban size={17} />, label: 'Projects' },
+            { key: 'leaves', icon: <CalendarDays size={17} />, label: 'Leaves' },
             { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
           ].map(item => (
             <button key={item.key} onClick={() => setTab(item.key as Tab)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                tab === item.key
-                  ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'
-              }`}>
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${tab === item.key
+                ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
+                : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}>
               {item.icon}<span>{item.label}</span>
             </button>
           ))}
@@ -147,11 +158,10 @@ function App() {
               <div className="pt-3 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Manage</div>
               {manageSubs.filter(s => s.show).map(s => (
                 <button key={s.key} onClick={() => { setTab(s.key); setManageTab(s.key); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                    tab === s.key
-                      ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
-                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                  }`}>
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${tab === s.key
+                    ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                    }`}>
                   <LayoutGrid size={17} /><span>{s.label}</span>
                 </button>
               ))}
@@ -162,9 +172,11 @@ function App() {
         {/* Main content */}
         <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 pb-24 md:pb-6">
           <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border-t-4 border-violet-500 border border-slate-100 p-4 sm:p-6">
+            {tab === 'dashboard' && <Dashboard user={user} />}
             {tab === 'att' && <AttView user={user} />}
             {tab === 'tasks' && <TaskView user={user} />}
             {tab === 'proj' && <ProjView />}
+            {tab === 'leaves' && <LeaveView user={user} />}
             {tab === 'me' && <MeView user={user} />}
             {/* Manage tabs */}
             {isManage && isHR && (
@@ -191,9 +203,11 @@ function App() {
       {/* Bottom nav — mobile only */}
       <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 flex md:hidden z-30 pb-safe">
         {[
-          { key: 'att', icon: <CalendarDays size={22} />, label: 'Attendance' },
+          { key: 'dashboard', icon: <Home size={22} />, label: 'Home' },
+          { key: 'att', icon: <CalendarDays size={22} />, label: 'Att.' },
           { key: 'tasks', icon: <ListChecks size={22} />, label: 'Tasks' },
           { key: 'proj', icon: <FolderKanban size={22} />, label: 'Projects' },
+          { key: 'leaves', icon: <CalendarDays size={22} />, label: 'Leaves' },
           ...(isHR ? [{ key: 'mg_emps' as Tab, icon: <Users size={22} />, label: 'Manage' }] : []),
           { key: 'me', icon: <UserCircle size={22} />, label: 'Profile' },
         ].map(item => {
@@ -208,9 +222,8 @@ function App() {
                   setTab(item.key as Tab);
                 }
               }}
-              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition relative ${
-                active ? 'text-violet-600' : 'text-slate-400'
-              }`}
+              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition relative ${active ? 'text-violet-600' : 'text-slate-400'
+                }`}
             >
               {active && <span className="absolute top-0 inset-x-4 h-0.5 rounded-b-full bg-violet-500" />}
               {item.icon}
