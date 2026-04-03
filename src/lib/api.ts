@@ -128,6 +128,7 @@ export interface Employee {
   phone_no: string;
   id_type: string;
   id_number: string;
+  designation_id?: number | null;
   year_joined?: string | null;
   salary: number;
   role?: string;
