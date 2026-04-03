@@ -64,7 +64,6 @@ export default function Dashboard({ user }: DashboardProps) {
 
   // Leaves Summary
   const takenLeaves = leaves.filter(l => l.status === 'approved').length;
-  const pendingLeavesCount = leaves.filter(l => l.status === 'pending').length;
 
   if (loading) {
     return (
