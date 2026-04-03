@@ -104,7 +104,7 @@ function App() {
         <div className="px-4 sm:px-8 flex justify-between items-center h-14">
           <div className="flex items-center gap-3">
             <img src="/svaas.png" alt="SVAAS" className="h-8 w-8 rounded-lg object-cover shadow border border-white/40" />
-            <h1 className="text-lg font-semibold tracking-tight hidden sm:block">SVAAS Inframax</h1>
+            <h1 className="text-lg font-semibold tracking-tight hidden sm:block">SVAAS Inframax Solutions</h1>
           </div>
           <div className="flex items-center gap-2">
             {/* Role badge */}
