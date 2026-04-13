@@ -19,7 +19,7 @@ export default function Dashboard({ user }: DashboardProps) {
       setLoading(true);
       try {
         const results = await Promise.allSettled([
-          api.tasks?.getEmployeeTasks?.(user.name) || Promise.resolve([]),
+          api.tasks?.getEmployeeTasks?.(user.employee_id || 0) || Promise.resolve([]),
           api.attendance?.getMyAttendance?.(user.employee_id || 0) || Promise.resolve([]),
           api.leaves?.getByEmployee?.(user.employee_id || 0) || Promise.resolve([])
         ]);
@@ -38,9 +38,9 @@ export default function Dashboard({ user }: DashboardProps) {
   }, [user]);
 
   // Task Stats
-  const completedTasks = tasks.filter(t => t.status === 'Completed').length;
-  const inProgressTasks = tasks.filter(t => t.status === 'In Progress').length;
-  const todoTasks = tasks.filter(t => t.status === 'To Do').length;
+  const completedTasks = tasks.filter(t => t.status.toLowerCase() === 'completed').length;
+  const inProgressTasks = tasks.filter(t => t.status.toLowerCase() === 'in progress' || t.status.toLowerCase() === 'in_progress').length;
+  const todoTasks = tasks.filter(t => t.status.toLowerCase() === 'to do' || t.status.toLowerCase() === 'todo').length;
 
   const taskData = [
     { id: 'Completed', label: 'Completed', value: completedTasks, color: '#10b981' },

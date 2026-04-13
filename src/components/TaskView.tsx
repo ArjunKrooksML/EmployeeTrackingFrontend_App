@@ -4,6 +4,7 @@ import { api, type Task } from '../lib/api';
 type User = {
   name: string;
   email: string;
+  employee_id: number;
 };
 
 type Props = {
@@ -27,13 +28,13 @@ function TaskView({ user }: Props) {
 
   useEffect(() => {
     fetchTasks();
-  }, [user.name]);
+  }, [user.employee_id]);
 
   const fetchTasks = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.tasks.getEmployeeTasks(user.name);
+      const data = await api.tasks.getEmployeeTasks(user.employee_id);
       setTasks(data || []);
     } catch (err) {
       console.error('Error fetching tasks:', err);
@@ -54,7 +55,7 @@ function TaskView({ user }: Props) {
   const onDone = async () => {
     if (!sel) return;
     try {
-      await api.tasks.markComplete(sel.task_id, user.name, true);
+      await api.tasks.markComplete(sel.task_id, user.employee_id, true);
       await fetchTasks();
       setConfirm(false);
       setNote('');

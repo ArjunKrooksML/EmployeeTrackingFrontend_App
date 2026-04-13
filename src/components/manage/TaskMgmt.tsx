@@ -77,8 +77,8 @@ export default function TaskMgmt() {
               <input type="number" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-0.5" value={(form as any).project_id || ''} onChange={e => setForm(f => ({ ...f!, project_id: Number(e.target.value) }))} />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-600">Assigned To</label>
-              <input className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-0.5" value={form.assigned_to || ''} onChange={e => setForm(f => ({ ...f!, assigned_to: e.target.value }))} />
+              <label className="text-xs font-medium text-slate-600">Assigned To (Employee ID)</label>
+              <input type="number" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mt-0.5" value={form.assigned_to ?? ''} onChange={e => setForm(f => ({ ...f!, assigned_to: e.target.value ? Number(e.target.value) : undefined }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

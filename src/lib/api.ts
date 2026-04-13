@@ -5,7 +5,7 @@ export interface Task {
   project_id: number;
   task_name: string;
   description?: string | null;
-  assigned_to?: string | null;
+  assigned_to?: number | null;
   start_date?: string | null;
   deadline?: string | null;
   iscompleted?: boolean;
@@ -180,6 +180,12 @@ export const api = {
       localStorage.removeItem('empAccessToken');
       localStorage.removeItem('empRefreshToken');
     },
+    sendOtp: async (email: string): Promise<void> => {
+      return apiRequest<void>('/employees/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }, false);
+    },
     resetPassword: async (email: string, otp: string, new_password: string): Promise<void> => {
       return apiRequest<void>('/employees/reset-password', {
         method: 'POST',
@@ -194,11 +200,11 @@ export const api = {
     },
   },
   tasks: {
-    getEmployeeTasks: async (employeeName: string): Promise<Task[]> => {
-      return apiRequest<Task[]>(`/tasks/employee/${encodeURIComponent(employeeName)}`);
+    getEmployeeTasks: async (employeeId: number): Promise<Task[]> => {
+      return apiRequest<Task[]>(`/tasks/employee/${employeeId}`);
     },
-    markComplete: async (taskId: number, employeeName: string, isCompleted: boolean = true): Promise<Task> => {
-      return apiRequest<Task>(`/tasks/${taskId}/complete?employee_name=${encodeURIComponent(employeeName)}&is_completed=${isCompleted}`, {
+    markComplete: async (taskId: number, employeeId: number, isCompleted: boolean = true): Promise<Task> => {
+      return apiRequest<Task>(`/tasks/${taskId}/complete?employee_id=${employeeId}&is_completed=${isCompleted}`, {
         method: 'PUT',
       });
     },
@@ -231,24 +237,31 @@ export const api = {
       return apiRequest<Attendance[]>(`/attendance/employee/${employeeId}`);
     },
     getAll: async (): Promise<(Attendance & { employee_name: string })[]> => {
-      return apiRequest<(Attendance & { employee_name: string })[]>('/attendance/all');
+      const res = await apiRequest<{ items: (Attendance & { employee_name: string })[] }>('/attendance/all?page=1&page_size=10000');
+      return res.items;
     },
   },
   manage: {
-    getEmployees: async (): Promise<Employee[]> =>
-      apiRequest<Employee[]>('/admin/employees'),
+    getEmployees: async (): Promise<Employee[]> => {
+      const res = await apiRequest<{ items: Employee[] }>('/admin/employees?page=1&page_size=10000');
+      return res.items;
+    },
     createEmployee: async (data: any): Promise<Employee> =>
       apiRequest<Employee>('/admin/employees/create', { method: 'POST', body: JSON.stringify(data) }),
     updateEmployee: async (id: number, data: any): Promise<Employee> =>
       apiRequest<Employee>(`/admin/employees/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteEmployee: async (id: number): Promise<void> =>
       apiRequest<void>(`/admin/employees/${id}`, { method: 'DELETE' }),
-    getProjects: async (): Promise<Project[]> =>
-      apiRequest<Project[]>('/admin/projects'),
+    getProjects: async (): Promise<Project[]> => {
+      const res = await apiRequest<{ items: Project[] }>('/admin/projects?page=1&page_size=10000');
+      return res.items;
+    },
     createProject: async (data: any): Promise<Project> =>
       apiRequest<Project>('/admin/projects/create', { method: 'POST', body: JSON.stringify(data) }),
-    getTasks: async (): Promise<Task[]> =>
-      apiRequest<Task[]>('/admin/tasks'),
+    getTasks: async (): Promise<Task[]> => {
+      const res = await apiRequest<{ items: Task[] }>('/admin/tasks?page=1&page_size=10000');
+      return res.items;
+    },
     createTask: async (data: any): Promise<Task> =>
       apiRequest<Task>('/admin/tasks/create', { method: 'POST', body: JSON.stringify(data) }),
     updateTask: async (id: number, data: any): Promise<Task> =>
