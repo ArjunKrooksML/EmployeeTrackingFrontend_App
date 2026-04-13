@@ -4,7 +4,7 @@ import { api, type Task } from '../lib/api';
 type User = {
   name: string;
   email: string;
-  employee_id: number;
+  employee_id?: number;
 };
 
 type Props = {
@@ -31,6 +31,7 @@ function TaskView({ user }: Props) {
   }, [user.employee_id]);
 
   const fetchTasks = async () => {
+    if (!user.employee_id) return;
     setLoading(true);
     setError(null);
     try {
@@ -55,7 +56,7 @@ function TaskView({ user }: Props) {
   const onDone = async () => {
     if (!sel) return;
     try {
-      await api.tasks.markComplete(sel.task_id, user.employee_id, true);
+      await api.tasks.markComplete(sel.task_id, user.employee_id!, true);
       await fetchTasks();
       setConfirm(false);
       setNote('');
