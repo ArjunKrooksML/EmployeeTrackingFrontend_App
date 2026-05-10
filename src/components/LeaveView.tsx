@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, X, Calendar as CalendarIcon, Clock, AlertCircle } from 'lucide-react';
+import { Save, Plus, X, Calendar as CalendarIcon, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import { api, type Leave, type LeaveCreate } from '../lib/api';
 
 type User = {
@@ -12,6 +12,7 @@ export default function LeaveView({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [cancelling, setCancelling] = useState<number | null>(null);
   
   const [formData, setFormData] = useState({
     leave_type: 'casual',
@@ -59,6 +60,20 @@ export default function LeaveView({ user }: { user: User }) {
       alert(error.message || 'Failed to request leave');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCancel = async (leave: Leave) => {
+    if (!user?.employee_id || !leave.id) return;
+    if (!confirm('Cancel this leave request?')) return;
+    setCancelling(leave.id);
+    try {
+      await api.leaves.cancel(leave.id, user.employee_id);
+      fetchLeaves();
+    } catch (err: any) {
+      alert(err.message || 'Failed to cancel leave');
+    } finally {
+      setCancelling(null);
     }
   };
 
@@ -129,6 +144,18 @@ export default function LeaveView({ user }: { user: User }) {
                     <AlertCircle size={14} className="text-violet-500 shrink-0 mt-0.5" />
                     <span className="truncate">{leave.reason}</span>
                   </div>
+                )}
+                {leave.status !== 'rejected' && (
+                  <button
+                    onClick={() => handleCancel(leave)}
+                    disabled={cancelling === leave.id}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                  >
+                    {cancelling === leave.id
+                      ? <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-rose-300 border-t-rose-600" />
+                      : <Trash2 size={13} />}
+                    Cancel
+                  </button>
                 )}
               </div>
             </div>

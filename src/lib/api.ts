@@ -145,6 +145,7 @@ export type Leave = {
   created_at?: string;
 };
 
+
 export type LeaveCreate = {
   employee_id: number;
   leave_type: string;
@@ -271,16 +272,17 @@ export const api = {
     request: async (data: LeaveCreate): Promise<Leave> =>
       apiRequest<Leave>('/leaves/request', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('empAccessToken')}`
-        },
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('empAccessToken')}` },
         body: JSON.stringify(data)
       }),
     getByEmployee: async (empId: number): Promise<Leave[]> =>
       apiRequest<Leave[]>(`/leaves/employee/${empId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('empAccessToken')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('empAccessToken')}` }
+      }),
+    cancel: async (leaveId: number, empId: number): Promise<{ message: string }> =>
+      apiRequest<{ message: string }>(`/leaves/${leaveId}?employee_id=${empId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('empAccessToken')}` }
       }),
   }
 };

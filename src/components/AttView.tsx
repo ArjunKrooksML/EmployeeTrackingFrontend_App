@@ -4,6 +4,7 @@ import { MapPin } from 'lucide-react';
 
 type User = { employee_id?: number; name: string; [key: string]: any };
 type AttMap = Record<string, Attendance>;
+type LeaveSet = Set<string>;
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -35,6 +36,7 @@ export default function AttView({ user }: { user: User }) {
   const [y, setY] = useState(today.getFullYear());
   const [m, setM] = useState(today.getMonth());
   const [data, setData] = useState<AttMap>({});
+  const [leaveDates, setLeaveDates] = useState<LeaveSet>(new Set());
   const [sel, setSel] = useState(toKey(today));
   const [loading, setLoading] = useState(false);
   const [locMsg, setLocMsg] = useState('');
@@ -46,10 +48,17 @@ export default function AttView({ user }: { user: User }) {
   async function load(id: number) {
     setLoading(true);
     try {
-      const rows = await api.attendance.getMyAttendance(id);
+      const [rows, leaves] = await Promise.all([
+        api.attendance.getMyAttendance(id),
+        api.leaves.getByEmployee(id),
+      ]);
       const map: AttMap = {};
       rows.forEach(r => { map[String(r.date).split('T')[0]] = r; });
       setData(map);
+      const approved = new Set(
+        leaves.filter(l => l.status === 'approved').map(l => String(l.leave_date).split('T')[0])
+      );
+      setLeaveDates(approved);
     } catch { /* silent */ }
     finally { setLoading(false); }
   }
@@ -138,15 +147,19 @@ export default function AttView({ user }: { user: User }) {
         {cells.map(c => {
           const rec = data[c.k];
           const isFuture = fromKey(c.k).getTime() > todayMid;
+          const isLeave = leaveDates.has(c.k);
           let cls = 'cal-cell cal-future';
-          if (!isFuture) {
+          if (isFuture) {
+            cls = isLeave ? 'cal-cell cal-leave' : 'cal-cell cal-future';
+          } else {
             if (rec) {
               cls = rec.attendance === 'present' ? 'cal-cell cal-present'
-                : rec.attendance === 'absent' ? 'cal-cell cal-absent'
+                : rec.attendance === 'late' ? 'cal-cell cal-late'
                 : rec.attendance === 'pending' ? 'cal-cell cal-pending'
-                : 'cal-cell cal-late';
+                : isLeave && !rec.checkin ? 'cal-cell cal-leave'
+                : 'cal-cell cal-absent';
             } else {
-              cls = 'cal-cell cal-absent';
+              cls = isLeave ? 'cal-cell cal-leave' : 'cal-cell cal-absent';
             }
           }
           if (c.k === sel) cls += ' ring-2 ring-blue-500 ring-offset-2';
@@ -173,11 +186,13 @@ export default function AttView({ user }: { user: User }) {
               <span className="font-medium text-slate-700">Status:</span>
               <span className={`font-medium ${
                 selRec.attendance === 'present' ? 'text-green-600'
+                : selRec.attendance === 'absent' && leaveDates.has(sel) && !selRec.checkin ? 'text-blue-600'
                 : selRec.attendance === 'absent' ? 'text-red-600'
                 : selRec.attendance === 'pending' ? 'text-yellow-600'
                 : 'text-orange-600'
               }`}>
-                {selRec.attendance === 'pending' ? 'Under Review'
+                {selRec.attendance === 'absent' && leaveDates.has(sel) && !selRec.checkin ? 'On Leave'
+                  : selRec.attendance === 'pending' ? 'Under Review'
                   : selRec.attendance.charAt(0).toUpperCase() + selRec.attendance.slice(1)}
               </span>
             </div>

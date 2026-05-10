@@ -82,6 +82,12 @@ body {
   color: #854d0e;
 }
 
+.cal-leave {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
 /* Task styles */
 .task-row {
   display: flex;
