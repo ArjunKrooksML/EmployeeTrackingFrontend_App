@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { api, type Task } from '../lib/api';
 
 type User = {
@@ -135,65 +136,106 @@ function TaskView({ user }: Props) {
           ))}
 
           {sel && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-semibold mb-4">Task details</h3>
-              <p className="font-semibold mb-2">{sel.task_name}</p>
-              {sel.description && <p className="text-gray-600 mb-4">{sel.description}</p>}
-              <div className="space-y-2 text-sm mb-4">
-                <p>
-                  <strong>Project ID:</strong> {sel.project_id}
-                </p>
-                <p>
-                  <strong>Status:</strong> {sel.status}
-                </p>
-                <p>
-                  <strong>Priority:</strong> {sel.priority}
-                </p>
-                {sel.start_date && sel.deadline && (
-                  <p>
-                    <strong>Dates:</strong> {fmt(sel.start_date)} → {fmt(sel.deadline)}
-                  </p>
-                )}
-              </div>
-
-              {!confirm ? (
-                <button
-                  type="button"
-                  onClick={() => setConfirm(true)}
-                  disabled={sel.iscompleted || sel.status === 'completed'}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {sel.iscompleted || sel.status === 'completed' ? 'Already completed' : 'Mark as completed'}
-                </button>
-              ) : (
-                <div className="space-y-4">
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+              onClick={() => { setSelId(null); setConfirm(false); setNote(''); }}
+            >
+              <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between p-5 border-b border-slate-100">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Remarks (optional)</label>
-                    <textarea
-                      value={note}
-                      onChange={e => setNote(e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                    <h3 className="text-lg font-bold text-slate-800">{sel.task_name}</h3>
+                    <div className="flex gap-2 mt-1.5">
+                      <span className={`pill pill-prio-${sel.priority}`}>{sel.priority}</span>
+                      <span className={`pill pill-status-${sel.status}`}>{sel.status.replace('_', ' ')}</span>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setConfirm(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onDone}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                    >
-                      Confirm completed
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setSelId(null); setConfirm(false); setNote(''); }}
+                    className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-colors ml-3 shrink-0"
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
-              )}
+
+                <div className="p-5 space-y-3 text-sm">
+                  {sel.description && (
+                    <p className="text-slate-600">{sel.description}</p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-slate-50 rounded-lg px-3 py-2">
+                      <p className="text-xs text-slate-400 mb-0.5">Project</p>
+                      <p className="font-medium text-slate-700">#{sel.project_id}</p>
+                    </div>
+                    {sel.task_type && (
+                      <div className="bg-slate-50 rounded-lg px-3 py-2">
+                        <p className="text-xs text-slate-400 mb-0.5">Task Type</p>
+                        <p className="font-medium text-slate-700">{sel.task_type}</p>
+                      </div>
+                    )}
+                    {sel.tools_type && (
+                      <div className="bg-slate-50 rounded-lg px-3 py-2">
+                        <p className="text-xs text-slate-400 mb-0.5">Tools Type</p>
+                        <p className="font-medium text-slate-700">{sel.tools_type}</p>
+                      </div>
+                    )}
+                    {sel.start_date && (
+                      <div className="bg-slate-50 rounded-lg px-3 py-2">
+                        <p className="text-xs text-slate-400 mb-0.5">Start</p>
+                        <p className="font-medium text-slate-700">{fmt(sel.start_date)}</p>
+                      </div>
+                    )}
+                    {sel.deadline && (
+                      <div className="bg-slate-50 rounded-lg px-3 py-2">
+                        <p className="text-xs text-slate-400 mb-0.5">Deadline</p>
+                        <p className="font-medium text-slate-700">{fmt(sel.deadline)}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {!confirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfirm(true)}
+                      disabled={sel.iscompleted || sel.status === 'completed'}
+                      className="w-full mt-2 px-4 py-2.5 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {sel.iscompleted || sel.status === 'completed' ? 'Already completed' : 'Mark as completed'}
+                    </button>
+                  ) : (
+                    <div className="space-y-3 mt-2">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Remarks (optional)</label>
+                        <textarea
+                          value={note}
+                          onChange={e => setNote(e.target.value)}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 focus:outline-none resize-none"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setConfirm(false)}
+                          className="flex-1 px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition text-sm font-medium"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={onDone}
+                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition text-sm font-semibold"
+                        >
+                          Confirm completed
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </>

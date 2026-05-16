@@ -11,6 +11,8 @@ export interface Task {
   iscompleted?: boolean;
   status: string;
   priority: string;
+  task_type?: string | null;
+  tools_type?: string | null;
   created?: string;
 }
 
@@ -53,21 +55,22 @@ async function refreshToken(): Promise<string | null> {
       body: JSON.stringify({ refresh_token: refresh }),
     });
 
-    if (!res.ok) {
+    if (res.status === 401) {
       localStorage.removeItem('empAccessToken');
       localStorage.removeItem('empRefreshToken');
       return null;
     }
 
+    if (!res.ok) return null;
+
     const data = await res.json();
     if (data.access_token) {
       localStorage.setItem('empAccessToken', data.access_token);
+      if (data.refresh_token) localStorage.setItem('empRefreshToken', data.refresh_token);
       return data.access_token;
     }
     return null;
   } catch {
-    localStorage.removeItem('empAccessToken');
-    localStorage.removeItem('empRefreshToken');
     return null;
   }
 }
