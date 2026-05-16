@@ -149,6 +149,28 @@ export type Leave = {
 };
 
 
+export interface SalaryDeduction {
+  employee_id: number;
+  employee_name: string;
+  month: number;
+  year: number;
+  basic: number;
+  da: number;
+  hra: number;
+  others: number;
+  gross_salary: number;
+  lates_count: number;
+  absents_from_lates: number;
+  half_day_absents: number;
+  full_absents: number;
+  paid_leave_used: boolean;
+  leave_deduction: number;
+  advance_deduction: number;
+  total_deduction: number;
+  net_salary: number;
+  working_days: number;
+}
+
 export type LeaveCreate = {
   employee_id: number;
   leave_type: string;
@@ -270,6 +292,10 @@ export const api = {
       apiRequest<Task>('/admin/tasks/create', { method: 'POST', body: JSON.stringify(data) }),
     updateTask: async (id: number, data: any): Promise<Task> =>
       apiRequest<Task>(`/admin/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  },
+  salary: {
+    getMy: async (): Promise<SalaryDeduction[]> =>
+      apiRequest<SalaryDeduction[]>('/salary/my'),
   },
   leaves: {
     request: async (data: LeaveCreate): Promise<Leave> =>

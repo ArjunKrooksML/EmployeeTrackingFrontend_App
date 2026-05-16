@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { CalendarDays, FolderKanban, ListChecks, UserCircle, Users, X, LayoutGrid, Home } from 'lucide-react';
+import { CalendarDays, FolderKanban, ListChecks, UserCircle, Users, X, LayoutGrid, Home, Wallet } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import AttView from './components/AttView';
 import TaskView from './components/TaskView';
 import ProjView from './components/ProjView';
 import LeaveView from './components/LeaveView';
 import MeView from './components/MeView';
+import PayrollView from './components/PayrollView';
 import Login from './components/Login';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import EmpMgmt from './components/manage/EmpMgmt';
@@ -29,7 +30,7 @@ type User = {
 };
 
 // Base tabs always visible
-type BaseTab = 'dashboard' | 'att' | 'tasks' | 'proj' | 'leaves' | 'me';
+type BaseTab = 'dashboard' | 'att' | 'tasks' | 'proj' | 'leaves' | 'payroll' | 'me';
 // Extra tabs for HR/GM
 type ManageTab = 'mg_emps' | 'mg_projs' | 'mg_tasks' | 'mg_att';
 type Tab = BaseTab | ManageTab;
@@ -141,6 +142,7 @@ function App() {
             { key: 'tasks', icon: <ListChecks size={17} />, label: 'My Tasks' },
             { key: 'proj', icon: <FolderKanban size={17} />, label: 'Projects' },
             { key: 'leaves', icon: <CalendarDays size={17} />, label: 'Leaves' },
+            { key: 'payroll', icon: <Wallet size={17} />, label: 'Payroll' },
             { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
           ].map(item => (
             <button key={item.key} onClick={() => setTab(item.key as Tab)}
@@ -177,6 +179,7 @@ function App() {
             {tab === 'tasks' && <TaskView user={user} />}
             {tab === 'proj' && <ProjView />}
             {tab === 'leaves' && <LeaveView user={user} />}
+            {tab === 'payroll' && <PayrollView />}
             {tab === 'me' && <MeView user={user} />}
             {/* Manage tabs */}
             {isManage && isHR && (
@@ -208,6 +211,7 @@ function App() {
           { key: 'tasks', icon: <ListChecks size={22} />, label: 'Tasks' },
           { key: 'proj', icon: <FolderKanban size={22} />, label: 'Projects' },
           { key: 'leaves', icon: <CalendarDays size={22} />, label: 'Leaves' },
+          { key: 'payroll', icon: <Wallet size={22} />, label: 'Payroll' },
           ...(isHR ? [{ key: 'mg_emps' as Tab, icon: <Users size={22} />, label: 'Manage' }] : []),
           { key: 'me', icon: <UserCircle size={22} />, label: 'Profile' },
         ].map(item => {
