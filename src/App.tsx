@@ -106,9 +106,9 @@ function App() {
   const isManage = (tab as string).startsWith('mg_');
 
   return (
-    <div className="min-h-screen bg-violet-50/40 flex flex-col">
+    <div className="min-h-screen bg-[#f5f3ff] flex flex-col">
       {/* Top nav */}
-      <nav className="bg-gradient-to-r from-violet-600 via-purple-600 to-rose-500 text-white shadow-lg">
+      <nav className="bg-[#130c24] text-white border-b border-white/5">
         <div className="px-4 sm:px-8 flex justify-between items-center h-14">
           <div className="flex items-center gap-2 sm:gap-3">
             <button type="button" onClick={() => setShowDrawer(true)} className="md:hidden p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition mr-1">
@@ -147,7 +147,7 @@ function App() {
       {/* Desktop layout: sidebar + content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — desktop only */}
-        <aside className="hidden md:flex w-56 bg-indigo-950 text-slate-100 flex-col px-3 py-5 space-y-1 shadow-xl">
+        <aside className="hidden md:flex w-56 bg-[#130c24] text-slate-100 flex-col px-3 py-5 space-y-0.5 border-r border-white/5">
           {[
             { key: 'dashboard', icon: <Home size={17} />, label: 'Dashboard' },
             { key: 'att', icon: <CalendarDays size={17} />, label: 'Attendance' },
@@ -158,9 +158,9 @@ function App() {
             { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
           ].map(item => (
             <button key={item.key} onClick={() => navigate(item.key as Tab)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${tab === item.key
-                ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
-                : 'text-slate-300 hover:bg-white/10 hover:text-white'
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === item.key
+                ? 'bg-violet-500/15 text-violet-300 border-l-2 border-violet-500'
+                : 'text-slate-400 hover:bg-white/8 hover:text-slate-100 border-l-2 border-transparent'
                 }`}>
               {item.icon}<span>{item.label}</span>
             </button>
@@ -172,9 +172,9 @@ function App() {
               <div className="pt-3 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Manage</div>
               {manageSubs.filter(s => s.show).map(s => (
                 <button key={s.key} onClick={() => { navigate(s.key); setManageTab(s.key); }}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${tab === s.key
-                    ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
-                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === s.key
+                    ? 'bg-violet-500/15 text-violet-300 border-l-2 border-violet-500'
+                    : 'text-slate-400 hover:bg-white/8 hover:text-slate-100 border-l-2 border-transparent'
                     }`}>
                   <LayoutGrid size={17} /><span>{s.label}</span>
                 </button>
@@ -184,15 +184,15 @@ function App() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6">
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border-t-4 border-violet-500 border border-slate-100 p-4 sm:p-6">
-            {tab === 'dashboard' && <Dashboard key={tabKey} user={user} />}
-            {tab === 'att' && <AttView key={tabKey} user={user} />}
-            {tab === 'tasks' && <TaskView key={tabKey} user={user} />}
-            {tab === 'proj' && <ProjView key={tabKey} />}
-            {tab === 'leaves' && <LeaveView key={tabKey} user={user} />}
-            {tab === 'payroll' && <PayrollView key={tabKey} />}
-            {tab === 'me' && <MeView key={tabKey} user={user} />}
+        <main className="flex-1 overflow-y-auto px-3 sm:px-8 py-6">
+          <div key={`${tab}-${tabKey}`} className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200/70 p-4 sm:p-6 animate-fade-in-up">
+            {tab === 'dashboard' && <Dashboard user={user} />}
+            {tab === 'att' && <AttView user={user} />}
+            {tab === 'tasks' && <TaskView user={user} />}
+            {tab === 'proj' && <ProjView />}
+            {tab === 'leaves' && <LeaveView user={user} />}
+            {tab === 'payroll' && <PayrollView />}
+            {tab === 'me' && <MeView user={user} />}
             {/* Manage tabs */}
             {isManage && isHR && (
               <div>
@@ -205,10 +205,10 @@ function App() {
                     </button>
                   ))}
                 </div>
-                {manageTab === 'mg_emps' && <EmpMgmt key={tabKey} />}
-                {manageTab === 'mg_projs' && <ProjMgmt key={tabKey} />}
-                {manageTab === 'mg_tasks' && isGM && <TaskMgmt key={tabKey} />}
-                {manageTab === 'mg_att' && isGM && <AllAtt key={tabKey} />}
+                {manageTab === 'mg_emps' && <EmpMgmt />}
+                {manageTab === 'mg_projs' && <ProjMgmt />}
+                {manageTab === 'mg_tasks' && isGM && <TaskMgmt />}
+                {manageTab === 'mg_att' && isGM && <AllAtt />}
               </div>
             )}
           </div>
@@ -219,7 +219,7 @@ function App() {
       {showDrawer && (
         <div className="fixed inset-0 z-50 md:hidden flex">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDrawer(false)} />
-          <aside className="relative w-64 bg-indigo-950 text-slate-100 flex flex-col px-3 py-5 space-y-1 shadow-2xl h-full overflow-y-auto">
+          <aside className="relative w-60 bg-[#130c24] text-slate-100 flex flex-col px-3 py-5 space-y-0.5 h-full overflow-y-auto border-r border-white/5">
             <div className="flex items-center justify-between mb-3 px-2">
               <span className="text-sm font-semibold text-slate-300 tracking-wide uppercase">Menu</span>
               <button onClick={() => setShowDrawer(false)} className="text-slate-400 hover:text-white p-1"><X size={18} /></button>
@@ -234,9 +234,9 @@ function App() {
               { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
             ].map(item => (
               <button key={item.key} onClick={() => { navigate(item.key as Tab); setShowDrawer(false); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${tab === item.key
-                  ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
-                  : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === item.key
+                  ? 'bg-violet-500/15 text-violet-300 border-l-2 border-violet-500'
+                  : 'text-slate-400 hover:bg-white/8 hover:text-slate-100 border-l-2 border-transparent'}`}>
                 {item.icon}<span>{item.label}</span>
               </button>
             ))}
@@ -245,9 +245,9 @@ function App() {
                 <div className="pt-3 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Manage</div>
                 {manageSubs.filter(s => s.show).map(s => (
                   <button key={s.key} onClick={() => { navigate(s.key); setManageTab(s.key); setShowDrawer(false); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${tab === s.key
-                      ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
-                      : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === s.key
+                      ? 'bg-violet-500/15 text-violet-300 border-l-2 border-violet-500'
+                      : 'text-slate-400 hover:bg-white/8 hover:text-slate-100 border-l-2 border-transparent'}`}>
                     <LayoutGrid size={17} /><span>{s.label}</span>
                   </button>
                 ))}
