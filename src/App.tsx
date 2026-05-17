@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CalendarDays, FolderKanban, ListChecks, UserCircle, Users, X, LayoutGrid, Home, Wallet } from 'lucide-react';
+import { CalendarDays, FolderKanban, ListChecks, UserCircle, X, LayoutGrid, Home, Wallet, Menu } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import AttView from './components/AttView';
 import TaskView from './components/TaskView';
@@ -45,7 +45,14 @@ function App() {
   const [showMenu, setShowMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showChangePass, setShowChangePass] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
   const [manageTab, setManageTab] = useState<ManageTab>('mg_emps');
+  const [tabKey, setTabKey] = useState(0);
+
+  const navigate = (key: Tab) => {
+    if (tab === key) setTabKey(k => k + 1);
+    else setTab(key);
+  };
 
   const [user, setUser] = useState<User | null>(() => {
     try {
@@ -103,9 +110,14 @@ function App() {
       {/* Top nav */}
       <nav className="bg-gradient-to-r from-violet-600 via-purple-600 to-rose-500 text-white shadow-lg">
         <div className="px-4 sm:px-8 flex justify-between items-center h-14">
-          <div className="flex items-center gap-3">
-            <img src="/svaas.png" alt="SVAAS" className="h-8 w-8 rounded-lg object-cover shadow border border-white/40" />
-            <h1 className="text-lg font-semibold tracking-tight hidden sm:block">SVAAS Inframax Solutions</h1>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button type="button" onClick={() => setShowDrawer(true)} className="md:hidden p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition mr-1">
+              <Menu size={20} />
+            </button>
+            <button type="button" onClick={() => setTabKey(k => k + 1)} className="flex items-center gap-2">
+              <img src="/svaas.png" alt="SVAAS" className="h-8 w-8 rounded-lg object-cover shadow border border-white/40" />
+              <h1 className="text-lg font-semibold tracking-tight hidden sm:block">SVAAS Inframax Solutions</h1>
+            </button>
           </div>
           <div className="flex items-center gap-2">
             {/* Role badge */}
@@ -145,7 +157,7 @@ function App() {
             { key: 'payroll', icon: <Wallet size={17} />, label: 'Payroll' },
             { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
           ].map(item => (
-            <button key={item.key} onClick={() => setTab(item.key as Tab)}
+            <button key={item.key} onClick={() => navigate(item.key as Tab)}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${tab === item.key
                 ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
                 : 'text-slate-300 hover:bg-white/10 hover:text-white'
@@ -159,7 +171,7 @@ function App() {
             <>
               <div className="pt-3 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Manage</div>
               {manageSubs.filter(s => s.show).map(s => (
-                <button key={s.key} onClick={() => { setTab(s.key); setManageTab(s.key); }}
+                <button key={s.key} onClick={() => { navigate(s.key); setManageTab(s.key); }}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition ${tab === s.key
                     ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
                     : 'text-slate-300 hover:bg-white/10 hover:text-white'
@@ -172,70 +184,78 @@ function App() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6 pb-24 md:pb-6">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6">
           <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border-t-4 border-violet-500 border border-slate-100 p-4 sm:p-6">
-            {tab === 'dashboard' && <Dashboard user={user} />}
-            {tab === 'att' && <AttView user={user} />}
-            {tab === 'tasks' && <TaskView user={user} />}
-            {tab === 'proj' && <ProjView />}
-            {tab === 'leaves' && <LeaveView user={user} />}
-            {tab === 'payroll' && <PayrollView />}
-            {tab === 'me' && <MeView user={user} />}
+            {tab === 'dashboard' && <Dashboard key={tabKey} user={user} />}
+            {tab === 'att' && <AttView key={tabKey} user={user} />}
+            {tab === 'tasks' && <TaskView key={tabKey} user={user} />}
+            {tab === 'proj' && <ProjView key={tabKey} />}
+            {tab === 'leaves' && <LeaveView key={tabKey} user={user} />}
+            {tab === 'payroll' && <PayrollView key={tabKey} />}
+            {tab === 'me' && <MeView key={tabKey} user={user} />}
             {/* Manage tabs */}
             {isManage && isHR && (
               <div>
                 {/* Sub-tab bar */}
                 <div className="flex gap-2 mb-5 border-b border-slate-200 pb-2 overflow-x-auto">
                   {manageSubs.filter(s => s.show).map(s => (
-                    <button key={s.key} onClick={() => { setManageTab(s.key); setTab(s.key); }}
+                    <button key={s.key} onClick={() => { setManageTab(s.key); navigate(s.key); }}
                       className={`px-3 py-1.5 text-sm rounded-lg font-medium whitespace-nowrap transition ${manageTab === s.key ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
                       {s.label}
                     </button>
                   ))}
                 </div>
-                {manageTab === 'mg_emps' && <EmpMgmt />}
-                {manageTab === 'mg_projs' && <ProjMgmt />}
-                {manageTab === 'mg_tasks' && isGM && <TaskMgmt />}
-                {manageTab === 'mg_att' && isGM && <AllAtt />}
+                {manageTab === 'mg_emps' && <EmpMgmt key={tabKey} />}
+                {manageTab === 'mg_projs' && <ProjMgmt key={tabKey} />}
+                {manageTab === 'mg_tasks' && isGM && <TaskMgmt key={tabKey} />}
+                {manageTab === 'mg_att' && isGM && <AllAtt key={tabKey} />}
               </div>
             )}
           </div>
         </main>
       </div>
 
-      {/* Bottom nav — mobile only */}
-      <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 flex md:hidden z-30 pb-safe">
-        {[
-          { key: 'dashboard', icon: <Home size={22} />, label: 'Home' },
-          { key: 'att', icon: <CalendarDays size={22} />, label: 'Att.' },
-          { key: 'tasks', icon: <ListChecks size={22} />, label: 'Tasks' },
-          { key: 'proj', icon: <FolderKanban size={22} />, label: 'Projects' },
-          { key: 'leaves', icon: <CalendarDays size={22} />, label: 'Leaves' },
-          { key: 'payroll', icon: <Wallet size={22} />, label: 'Payroll' },
-          ...(isHR ? [{ key: 'mg_emps' as Tab, icon: <Users size={22} />, label: 'Manage' }] : []),
-          { key: 'me', icon: <UserCircle size={22} />, label: 'Profile' },
-        ].map(item => {
-          const active = item.key === 'mg_emps' ? isManage : tab === item.key;
-          return (
-            <button
-              key={item.key}
-              onClick={() => {
-                if (item.key === 'mg_emps' && isHR) {
-                  setTab(manageTab);
-                } else {
-                  setTab(item.key as Tab);
-                }
-              }}
-              className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-xs font-medium transition relative ${active ? 'text-violet-600' : 'text-slate-400'
-                }`}
-            >
-              {active && <span className="absolute top-0 inset-x-4 h-0.5 rounded-b-full bg-violet-500" />}
-              {item.icon}
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      {/* Mobile drawer */}
+      {showDrawer && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDrawer(false)} />
+          <aside className="relative w-64 bg-indigo-950 text-slate-100 flex flex-col px-3 py-5 space-y-1 shadow-2xl h-full overflow-y-auto">
+            <div className="flex items-center justify-between mb-3 px-2">
+              <span className="text-sm font-semibold text-slate-300 tracking-wide uppercase">Menu</span>
+              <button onClick={() => setShowDrawer(false)} className="text-slate-400 hover:text-white p-1"><X size={18} /></button>
+            </div>
+            {[
+              { key: 'dashboard', icon: <Home size={17} />, label: 'Dashboard' },
+              { key: 'att', icon: <CalendarDays size={17} />, label: 'Attendance' },
+              { key: 'tasks', icon: <ListChecks size={17} />, label: 'My Tasks' },
+              { key: 'proj', icon: <FolderKanban size={17} />, label: 'Projects' },
+              { key: 'leaves', icon: <CalendarDays size={17} />, label: 'Leaves' },
+              { key: 'payroll', icon: <Wallet size={17} />, label: 'Payroll' },
+              { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
+            ].map(item => (
+              <button key={item.key} onClick={() => { navigate(item.key as Tab); setShowDrawer(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${tab === item.key
+                  ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                {item.icon}<span>{item.label}</span>
+              </button>
+            ))}
+            {isHR && (
+              <>
+                <div className="pt-3 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Manage</div>
+                {manageSubs.filter(s => s.show).map(s => (
+                  <button key={s.key} onClick={() => { navigate(s.key); setManageTab(s.key); setShowDrawer(false); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${tab === s.key
+                      ? 'bg-violet-600/30 text-violet-300 border-l-2 border-violet-400'
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                    <LayoutGrid size={17} /><span>{s.label}</span>
+                  </button>
+                ))}
+              </>
+            )}
+          </aside>
+        </div>
+      )}
 
       {/* Profile modal */}
       {showProfile && user && (
