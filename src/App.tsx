@@ -74,6 +74,12 @@ function App() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const onExpired = () => { setUser(null); setShowMenu(false); setShowProfile(false); };
+    window.addEventListener('emp:auth-expired', onExpired);
+    return () => window.removeEventListener('emp:auth-expired', onExpired);
+  }, []);
+
   const handleLogin = (employee: User) => {
     setUser(employee);
     localStorage.setItem('empUser', JSON.stringify(employee));
@@ -93,12 +99,14 @@ function App() {
   const role = user.role || 'employee';
   const isHR = role === 'hr' || role === 'gm';
   const isGM = role === 'gm';
+  const isSenior = role === 'senior';
+  const canManage = isHR || isSenior;
 
   // Build manage sub-tabs for the inline manage section
   const manageSubs: { key: ManageTab; label: string; show: boolean }[] = [
     { key: 'mg_emps', label: 'Employees', show: isHR },
     { key: 'mg_projs', label: 'Projects', show: isHR },
-    { key: 'mg_tasks', label: 'Tasks', show: isGM },
+    { key: 'mg_tasks', label: 'Tasks', show: isGM || isSenior },
     { key: 'mg_att', label: 'All Attendance', show: isGM },
   ];
 
@@ -166,8 +174,8 @@ function App() {
             </button>
           ))}
 
-          {/* Manage section for HR/GM */}
-          {isHR && (
+          {/* Manage section for HR/GM/Senior */}
+          {canManage && (
             <>
               <div className="pt-3 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Manage</div>
               {manageSubs.filter(s => s.show).map(s => (
@@ -194,7 +202,7 @@ function App() {
             {tab === 'payroll' && <PayrollView />}
             {tab === 'me' && <MeView user={user} />}
             {/* Manage tabs */}
-            {isManage && isHR && (
+            {isManage && canManage && (
               <div>
                 {/* Sub-tab bar */}
                 <div className="flex gap-2 mb-5 border-b border-slate-200 pb-2 overflow-x-auto">
@@ -205,9 +213,9 @@ function App() {
                     </button>
                   ))}
                 </div>
-                {manageTab === 'mg_emps' && <EmpMgmt />}
-                {manageTab === 'mg_projs' && <ProjMgmt />}
-                {manageTab === 'mg_tasks' && isGM && <TaskMgmt />}
+                {manageTab === 'mg_emps' && isHR && <EmpMgmt />}
+                {manageTab === 'mg_projs' && isHR && <ProjMgmt />}
+                {manageTab === 'mg_tasks' && (isGM || isSenior) && <TaskMgmt />}
                 {manageTab === 'mg_att' && isGM && <AllAtt />}
               </div>
             )}
@@ -240,7 +248,7 @@ function App() {
                 {item.icon}<span>{item.label}</span>
               </button>
             ))}
-            {isHR && (
+            {canManage && (
               <>
                 <div className="pt-3 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Manage</div>
                 {manageSubs.filter(s => s.show).map(s => (

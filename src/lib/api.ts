@@ -58,6 +58,8 @@ async function refreshToken(): Promise<string | null> {
     if (res.status === 401) {
       localStorage.removeItem('empAccessToken');
       localStorage.removeItem('empRefreshToken');
+      localStorage.removeItem('empUser');
+      window.dispatchEvent(new Event('emp:auth-expired'));
       return null;
     }
 
@@ -299,20 +301,11 @@ export const api = {
   },
   leaves: {
     request: async (data: LeaveCreate): Promise<Leave> =>
-      apiRequest<Leave>('/leaves/request', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('empAccessToken')}` },
-        body: JSON.stringify(data)
-      }),
+      apiRequest<Leave>('/leaves/request', { method: 'POST', body: JSON.stringify(data) }),
     getByEmployee: async (empId: number): Promise<Leave[]> =>
-      apiRequest<Leave[]>(`/leaves/employee/${empId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('empAccessToken')}` }
-      }),
+      apiRequest<Leave[]>(`/leaves/employee/${empId}`),
     cancel: async (leaveId: number, empId: number): Promise<{ message: string }> =>
-      apiRequest<{ message: string }>(`/leaves/${leaveId}?employee_id=${empId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('empAccessToken')}` }
-      }),
+      apiRequest<{ message: string }>(`/leaves/${leaveId}?employee_id=${empId}`, { method: 'DELETE' }),
   }
 };
 
