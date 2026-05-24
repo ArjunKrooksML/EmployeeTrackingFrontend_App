@@ -133,9 +133,11 @@ export interface Employee {
   phone_no: string;
   id_type: string;
   id_number: string;
-  designation_id?: number | null;
   year_joined?: string | null;
-  salary: number;
+  basic: number;
+  da: number;
+  hra: number;
+  others: number;
   role?: string;
 }
 
@@ -286,6 +288,8 @@ export const api = {
     },
     createProject: async (data: any): Promise<Project> =>
       apiRequest<Project>('/admin/projects/create', { method: 'POST', body: JSON.stringify(data) }),
+    updateProject: async (id: number, data: any): Promise<Project> =>
+      apiRequest<Project>(`/admin/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     getTasks: async (): Promise<Task[]> => {
       const res = await apiRequest<{ items: Task[] }>('/admin/tasks?page=1&page_size=10000');
       return res.items;
