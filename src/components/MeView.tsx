@@ -8,7 +8,10 @@ type User = {
   id_type?: string;
   id_number?: string;
   year_joined?: string;
-  salary?: number;
+  basic?: number;
+  da?: number;
+  hra?: number;
+  others?: number;
 };
 
 type Props = {
