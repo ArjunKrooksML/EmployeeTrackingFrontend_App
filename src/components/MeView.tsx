@@ -56,7 +56,7 @@ function MeView({ user }: Props) {
         {row('ID number', user.id_number)}
         {row('Joined', user.year_joined || 'N/A')}
         {row('Address', user.address)}
-        {row('Salary', user.salary)}
+        {row('Gross Salary', `₹${((user.basic || 0) + (user.da || 0) + (user.hra || 0) + (user.others || 0)).toLocaleString()}`)}
       </div>
     </div>
   );

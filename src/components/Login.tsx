@@ -12,9 +12,11 @@ type User = {
   phone_no?: string;
   id_type?: string;
   id_number?: string;
-  designation_id?: number;
   year_joined?: string;
-  salary?: number;
+  basic?: number;
+  da?: number;
+  hra?: number;
+  others?: number;
 };
 
 type Props = { onLogin: (u: User) => void };
@@ -48,9 +50,11 @@ export default function Login({ onLogin }: Props) {
         phone_no: emp.phone_no,
         id_type: emp.id_type,
         id_number: emp.id_number,
-        designation_id: emp.designation_id ?? undefined,
         year_joined: emp.year_joined ?? undefined,
-        salary: emp.salary,
+        basic: emp.basic,
+        da: emp.da,
+        hra: emp.hra,
+        others: emp.others,
       });
     } catch (error: any) {
       setErr(error?.message || 'Login failed. Please check your credentials.');

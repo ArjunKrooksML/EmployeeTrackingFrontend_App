@@ -24,9 +24,11 @@ type User = {
   phone_no?: string;
   id_type?: string;
   id_number?: string;
-  designation_id?: number;
   year_joined?: string;
-  salary?: number;
+  basic?: number;
+  da?: number;
+  hra?: number;
+  others?: number;
 };
 
 // Base tabs always visible
