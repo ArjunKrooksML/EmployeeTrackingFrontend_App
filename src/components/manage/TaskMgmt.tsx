@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, type Task } from '../../lib/api';
-import { Plus, Edit2 } from 'lucide-react';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import TaskForm from './TaskForm';
 
 const statusColor: Record<string, string> = {
@@ -26,6 +26,12 @@ export default function TaskMgmt() {
 
   function openNew() { setSelected(null); setShowForm(true); }
   function openEdit(t: Task) { setSelected(t); setShowForm(true); }
+
+  async function handleDelete(t: Task) {
+    if (!window.confirm(`Delete task "${t.task_name}"? This cannot be undone.`)) return;
+    try { await api.manage.deleteTask(t.task_id); fetchAll(); }
+    catch (e: any) { alert(e?.message || 'Failed to delete task'); }
+  }
 
   if (showForm) {
     return (
@@ -57,7 +63,10 @@ export default function TaskMgmt() {
                 <span className="text-xs text-slate-400">{t.priority}</span>
               </div>
             </div>
-            <button onClick={() => openEdit(t)} className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600 transition ml-2"><Edit2 size={15} /></button>
+            <div className="flex gap-1 ml-2">
+              <button onClick={() => openEdit(t)} className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600 transition"><Edit2 size={15} /></button>
+              <button onClick={() => handleDelete(t)} className="p-1.5 hover:bg-red-100 rounded-lg text-red-500 transition"><Trash2 size={15} /></button>
+            </div>
           </div>
         ))}
       </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, type Project } from '../../lib/api';
-import { Plus, Edit2 } from 'lucide-react';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import ProjForm from './ProjForm';
 
 export default function ProjMgmt() {
@@ -19,6 +19,12 @@ export default function ProjMgmt() {
 
   function openNew() { setSelected(null); setShowForm(true); }
   function openEdit(p: Project) { setSelected(p); setShowForm(true); }
+
+  async function handleDelete(p: Project) {
+    if (!window.confirm(`Delete project "${p.name}"? This cannot be undone.`)) return;
+    try { await api.manage.deleteProject(p.project_id); fetchAll(); }
+    catch (e: any) { alert(e?.message || 'Failed to delete project'); }
+  }
 
   if (showForm) {
     return (
@@ -47,7 +53,10 @@ export default function ProjMgmt() {
               <div className="font-medium text-sm text-slate-800">{p.name}</div>
               <div className="text-xs text-slate-500">{p.client_name} · started {p.start_date}</div>
             </div>
-            <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600 transition"><Edit2 size={15} /></button>
+            <div className="flex gap-1">
+              <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600 transition"><Edit2 size={15} /></button>
+              <button onClick={() => handleDelete(p)} className="p-1.5 hover:bg-red-100 rounded-lg text-red-500 transition"><Trash2 size={15} /></button>
+            </div>
           </div>
         ))}
       </div>

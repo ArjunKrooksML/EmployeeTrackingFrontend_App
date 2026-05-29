@@ -298,6 +298,10 @@ export const api = {
       apiRequest<Task>('/admin/tasks/create', { method: 'POST', body: JSON.stringify(data) }),
     updateTask: async (id: number, data: any): Promise<Task> =>
       apiRequest<Task>(`/admin/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteTask: async (id: number): Promise<void> =>
+      apiRequest<void>(`/admin/tasks/${id}`, { method: 'DELETE' }),
+    deleteProject: async (id: number): Promise<void> =>
+      apiRequest<void>(`/admin/projects/${id}`, { method: 'DELETE' }),
   },
   salary: {
     getMy: async (): Promise<SalaryDeduction[]> =>
