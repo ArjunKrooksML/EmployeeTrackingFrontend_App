@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { api, type Project } from '../../lib/api';
 import { Plus, Edit2, Trash2, CheckSquare, X } from 'lucide-react';
 import ProjForm from './ProjForm';
+import { useToast } from '../Toast';
+import { useConfirm } from '../ConfirmDialog';
 
 export default function ProjMgmt() {
   const [projs, setProjs] = useState<Project[]>([]);
@@ -10,6 +12,8 @@ export default function ProjMgmt() {
   const [selected, setSelected] = useState<Project | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -23,9 +27,10 @@ export default function ProjMgmt() {
   function openEdit(p: Project) { setSelected(p); setShowForm(true); }
 
   async function handleDelete(p: Project) {
-    if (!window.confirm(`Delete project "${p.name}"? This cannot be undone.`)) return;
-    try { await api.manage.deleteProject(p.project_id); fetchAll(); }
-    catch (e: any) { alert(e?.message || 'Failed to delete project'); }
+    const ok = await confirm({ title: 'Delete Project', message: `Delete "${p.name}"? Projects with existing tasks cannot be deleted.`, confirmLabel: 'Delete', danger: true });
+    if (!ok) return;
+    try { await api.manage.deleteProject(p.project_id); fetchAll(); toast.success('Project deleted'); }
+    catch (e: any) { toast.error(e?.message || 'Failed to delete project'); }
   }
 
   function toggleSelect(id: number) {
@@ -36,10 +41,12 @@ export default function ProjMgmt() {
 
   async function deleteSelected() {
     if (!selectedIds.size) return;
-    if (!confirm(`Delete ${selectedIds.size} project(s)? This cannot be undone.`)) return;
+    const ok = await confirm({ title: `Delete ${selectedIds.size} Project(s)`, message: 'Projects with tasks will be skipped.', confirmLabel: 'Delete', danger: true });
+    if (!ok) return;
     const results = await Promise.allSettled([...selectedIds].map(id => api.manage.deleteProject(id)));
     const failed = results.filter(r => r.status === 'rejected').length;
-    if (failed) alert(`${failed} deletion(s) failed. Projects with existing tasks cannot be deleted.`);
+    if (failed) toast.error(`${failed} project(s) have tasks and could not be deleted`);
+    else toast.success(`${selectedIds.size} project(s) deleted`);
     cancelSelect(); fetchAll();
   }
 
@@ -76,13 +83,16 @@ export default function ProjMgmt() {
         </div>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Loading…</p>}
+      {loading && (
+        <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="skeleton h-14 rounded-xl" />)}</div>
+      )}
       <div className="space-y-2">
-        {projs.map(p => {
+        {projs.map((p, i) => {
           const isSelected = selectedIds.has(p.project_id);
           return (
             <div key={p.project_id}
-              className={`flex items-center justify-between p-3 rounded-xl border transition ${selecting ? 'cursor-pointer' : ''} ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
+              className={`animate-row flex items-center justify-between p-3 rounded-xl border transition ${selecting ? 'cursor-pointer' : 'hover:-translate-y-px hover:shadow-sm'} ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
+              style={{ animationDelay: `${i * 0.04}s` }}
               onClick={selecting ? () => toggleSelect(p.project_id) : undefined}>
               <div className="flex items-center gap-2">
                 {selecting && (

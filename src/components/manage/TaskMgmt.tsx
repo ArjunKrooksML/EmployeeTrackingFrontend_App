@@ -2,12 +2,20 @@ import { useState, useEffect } from 'react';
 import { api, type Task } from '../../lib/api';
 import { Plus, Edit2, Trash2, CheckSquare, X } from 'lucide-react';
 import TaskForm from './TaskForm';
+import { useToast } from '../Toast';
+import { useConfirm } from '../ConfirmDialog';
 
 const statusColor: Record<string, string> = {
   todo: 'bg-slate-100 text-slate-600',
   in_progress: 'bg-blue-100 text-blue-700',
   completed: 'bg-green-100 text-green-700',
   blocked: 'bg-red-100 text-red-700',
+};
+const statusDot: Record<string, string> = {
+  todo: 'bg-slate-400',
+  in_progress: 'bg-blue-500',
+  completed: 'bg-green-500',
+  blocked: 'bg-red-500',
 };
 
 export default function TaskMgmt() {
@@ -17,6 +25,8 @@ export default function TaskMgmt() {
   const [selected, setSelected] = useState<Task | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -30,9 +40,10 @@ export default function TaskMgmt() {
   function openEdit(t: Task) { setSelected(t); setShowForm(true); }
 
   async function handleDelete(t: Task) {
-    if (!window.confirm(`Delete task "${t.task_name}"? This cannot be undone.`)) return;
-    try { await api.manage.deleteTask(t.task_id); fetchAll(); }
-    catch (e: any) { alert(e?.message || 'Failed to delete task'); }
+    const ok = await confirm({ title: 'Delete Task', message: `Delete "${t.task_name}"? This cannot be undone.`, confirmLabel: 'Delete', danger: true });
+    if (!ok) return;
+    try { await api.manage.deleteTask(t.task_id); fetchAll(); toast.success('Task deleted'); }
+    catch (e: any) { toast.error(e?.message || 'Failed to delete task'); }
   }
 
   function toggleSelect(id: number) {
@@ -43,10 +54,12 @@ export default function TaskMgmt() {
 
   async function deleteSelected() {
     if (!selectedIds.size) return;
-    if (!confirm(`Delete ${selectedIds.size} task(s)? This cannot be undone.`)) return;
+    const ok = await confirm({ title: `Delete ${selectedIds.size} Task(s)`, message: 'This will permanently remove all selected tasks.', confirmLabel: 'Delete All', danger: true });
+    if (!ok) return;
     const results = await Promise.allSettled([...selectedIds].map(id => api.manage.deleteTask(id)));
     const failed = results.filter(r => r.status === 'rejected').length;
-    if (failed) alert(`${failed} deletion(s) failed.`);
+    if (failed) toast.error(`${failed} deletion(s) failed`);
+    else toast.success(`${selectedIds.size} task(s) deleted`);
     cancelSelect(); fetchAll();
   }
 
@@ -83,13 +96,16 @@ export default function TaskMgmt() {
         </div>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Loading…</p>}
+      {loading && (
+        <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="skeleton h-14 rounded-xl" />)}</div>
+      )}
       <div className="space-y-2">
-        {tasks.map(t => {
+        {tasks.map((t, i) => {
           const isSelected = selectedIds.has(t.task_id);
           return (
             <div key={t.task_id}
-              className={`flex items-center justify-between p-3 rounded-xl border transition ${selecting ? 'cursor-pointer' : ''} ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
+              className={`animate-row flex items-center justify-between p-3 rounded-xl border transition ${selecting ? 'cursor-pointer' : 'hover:-translate-y-px hover:shadow-sm'} ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
+              style={{ animationDelay: `${i * 0.04}s` }}
               onClick={selecting ? () => toggleSelect(t.task_id) : undefined}>
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 {selecting && (
@@ -101,7 +117,9 @@ export default function TaskMgmt() {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm text-slate-800 truncate">{t.task_name}</div>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor[t.status] || 'bg-slate-100 text-slate-600'}`}>{t.status}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1 ${statusColor[t.status] || 'bg-slate-100 text-slate-600'}`}>
+                      <span className={`badge-dot ${statusDot[t.status] || 'bg-slate-400'}`} />{t.status}
+                    </span>
                     <span className="text-xs text-slate-400">{t.priority}</span>
                   </div>
                 </div>

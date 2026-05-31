@@ -1,22 +1,56 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { api, type Task, type Attendance, type Leave } from '../lib/api';
 import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveBar } from '@nivo/bar';
-import { ListChecks, CalendarDays, CheckCircle2, Briefcase } from 'lucide-react';
+import { ListChecks, CalendarDays, CheckCircle2, Briefcase, FileText } from 'lucide-react';
+
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
 
 interface DashboardProps { user: any; }
 
-function StatCard({ icon, label, value, gradient, shadow }: {
-  icon: React.ReactNode; label: string; value: number; gradient: string; shadow: string;
+function useCountUp(target: number, duration = 1.1) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let frameId: number;
+    let start: number | null = null;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / (duration * 1000), 1);
+      setCount(Math.round((1 - Math.pow(1 - p, 3)) * target));
+      if (p < 1) frameId = requestAnimationFrame(step);
+    };
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [target, duration]);
+  return count;
+}
+
+function StatCard({ icon, label, value, gradient, shadow, delay = 0 }: {
+  icon: React.ReactNode; label: string; value: number; gradient: string; shadow: string; delay?: number;
 }) {
+  const count = useCountUp(value);
   return (
-    <div className="bg-white border border-slate-100 p-5 rounded-2xl hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="bg-white border border-slate-100 p-5 rounded-2xl hover:-translate-y-1 hover:shadow-lg transition-all duration-200 cursor-default"
+    >
       <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg ${shadow} mb-4`}>
         {icon}
       </div>
-      <p className="text-3xl font-bold text-slate-900 tracking-tight">{value}</p>
+      <p className="text-3xl font-bold text-slate-900 tracking-tight tabular-nums">{count}</p>
       <p className="text-sm text-slate-500 mt-1 font-medium">{label}</p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -103,11 +137,11 @@ export default function Dashboard({ user }: DashboardProps) {
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-4">
         <StatCard icon={<CheckCircle2 size={20} className="text-white" />} label="Tasks Done" value={completedTasks}
-          gradient="from-emerald-500 to-teal-600" shadow="shadow-emerald-500/25" />
+          gradient="from-emerald-500 to-teal-600" shadow="shadow-emerald-500/25" delay={0} />
         <StatCard icon={<CalendarDays size={20} className="text-white" />} label="Days Present" value={presentDays}
-          gradient="from-violet-500 to-purple-600" shadow="shadow-violet-500/25" />
+          gradient="from-violet-500 to-purple-600" shadow="shadow-violet-500/25" delay={0.08} />
         <StatCard icon={<Briefcase size={20} className="text-white" />} label="Leaves Taken" value={takenLeaves}
-          gradient="from-rose-500 to-pink-600" shadow="shadow-rose-500/25" />
+          gradient="from-rose-500 to-pink-600" shadow="shadow-rose-500/25" delay={0.16} />
       </div>
 
       {/* Charts */}
@@ -164,6 +198,58 @@ export default function Dashboard({ user }: DashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Activity Feed */}
+      {(() => {
+        const events: { key: string; icon: React.ReactNode; title: string; sub: string; time: string }[] = [];
+        tasks.slice(0, 5).forEach(t => events.push({
+          key: `t-${t.task_id}`,
+          icon: <ListChecks size={14} className="text-violet-500" />,
+          title: t.task_name,
+          sub: `Task · ${t.status.replace('_', ' ')}`,
+          time: t.created ?? '',
+        }));
+        leaves.slice(0, 3).forEach(l => events.push({
+          key: `l-${l.id ?? Math.random()}`,
+          icon: <FileText size={14} className="text-indigo-500" />,
+          title: 'Leave request',
+          sub: `${l.status} · ${l.leave_date ?? ''}`,
+          time: l.leave_date ?? '',
+        }));
+        attendance.slice(0, 3).forEach(a => events.push({
+          key: `a-${a.id ?? Math.random()}`,
+          icon: <CalendarDays size={14} className="text-emerald-500" />,
+          title: 'Attendance',
+          sub: `${a.attendance} · ${a.date ?? ''}`,
+          time: a.date ?? '',
+        }));
+        const sorted = events.filter(e => e.time).sort((a, b) => b.time.localeCompare(a.time)).slice(0, 7);
+        if (!sorted.length) return null;
+        return (
+          <div className="bg-white/70 backdrop-blur-sm border border-white/60 rounded-2xl p-5">
+            <h3 className="text-sm font-bold text-slate-800 mb-4">Recent Activity</h3>
+            <div className="space-y-3">
+              {sorted.map((ev, i) => (
+                <motion.div key={ev.key}
+                  initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.04, duration: 0.2 }}
+                  className="flex items-start gap-3"
+                >
+                  <div className="relative flex-shrink-0 mt-0.5">
+                    <div className="h-7 w-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center">{ev.icon}</div>
+                    {i < sorted.length - 1 && <div className="absolute left-3.5 top-7 w-px h-3 bg-slate-200" />}
+                  </div>
+                  <div className="flex-1 min-w-0 pt-0.5">
+                    <p className="text-sm font-medium text-slate-800 truncate">{ev.title}</p>
+                    <p className="text-xs text-slate-400">{ev.sub}</p>
+                  </div>
+                  {ev.time && <span className="text-xs text-slate-400 flex-shrink-0 pt-0.5">{timeAgo(ev.time)}</span>}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

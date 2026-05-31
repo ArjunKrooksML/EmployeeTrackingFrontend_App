@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { api, type Employee } from '../../lib/api';
 import { Plus, Edit2, Trash2, CheckSquare, X } from 'lucide-react';
 import EmpForm from './EmpForm';
+import { useToast } from '../Toast';
+import { useConfirm } from '../ConfirmDialog';
 
 export default function EmpMgmt() {
   const [emps, setEmps] = useState<Employee[]>([]);
@@ -10,6 +12,8 @@ export default function EmpMgmt() {
   const [selected, setSelected] = useState<Employee | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => { fetchAll(); }, []);
 
@@ -23,9 +27,10 @@ export default function EmpMgmt() {
   function openEdit(e: Employee) { setSelected(e); setShowForm(true); }
 
   async function del(id: number) {
-    if (!confirm('Delete this employee?')) return;
-    try { await api.manage.deleteEmployee(id); await fetchAll(); }
-    catch (err: any) { alert(err.message || 'Error deleting'); }
+    const ok = await confirm({ title: 'Delete Employee', message: 'This will permanently remove the employee. This cannot be undone.', confirmLabel: 'Delete', danger: true });
+    if (!ok) return;
+    try { await api.manage.deleteEmployee(id); await fetchAll(); toast.success('Employee deleted'); }
+    catch (err: any) { toast.error(err.message || 'Error deleting'); }
   }
 
   function toggleSelect(id: number) {
@@ -36,10 +41,12 @@ export default function EmpMgmt() {
 
   async function deleteSelected() {
     if (!selectedIds.size) return;
-    if (!confirm(`Delete ${selectedIds.size} employee(s)? This cannot be undone.`)) return;
+    const ok = await confirm({ title: `Delete ${selectedIds.size} Employee(s)`, message: 'This will permanently remove all selected employees.', confirmLabel: 'Delete All', danger: true });
+    if (!ok) return;
     const results = await Promise.allSettled([...selectedIds].map(id => api.manage.deleteEmployee(id)));
     const failed = results.filter(r => r.status === 'rejected').length;
-    if (failed) alert(`${failed} deletion(s) failed.`);
+    if (failed) toast.error(`${failed} deletion(s) failed`);
+    else toast.success(`${selectedIds.size} employee(s) deleted`);
     cancelSelect(); fetchAll();
   }
 
@@ -76,13 +83,16 @@ export default function EmpMgmt() {
         </div>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">Loading…</p>}
+      {loading && (
+        <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="skeleton h-14 rounded-xl" />)}</div>
+      )}
       <div className="space-y-2">
-        {emps.map(e => {
+        {emps.map((e, i) => {
           const isSelected = selectedIds.has(e.employee_id);
           return (
             <div key={e.employee_id}
-              className={`flex items-center justify-between p-3 rounded-xl border transition ${selecting ? 'cursor-pointer' : ''} ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
+              className={`animate-row flex items-center justify-between p-3 rounded-xl border transition ${selecting ? 'cursor-pointer' : 'hover:-translate-y-px hover:shadow-sm'} ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
+              style={{ animationDelay: `${i * 0.04}s` }}
               onClick={selecting ? () => toggleSelect(e.employee_id) : undefined}>
               <div className="flex items-center gap-2">
                 {selecting && (
