@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { api, type Project } from '../lib/api';
+import { useToast } from './Toast';
 
 function fmt(d: string | null | undefined) {
   if (!d) return '-';
@@ -10,6 +11,7 @@ function fmt(d: string | null | undefined) {
 }
 
 function ProjView() {
+  const toast = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -40,7 +42,7 @@ function ProjView() {
       await fetchProjects();
       setShowForm(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create project');
+      toast.error(err instanceof Error ? err.message : 'Failed to create project');
       throw err;
     }
   };
@@ -51,7 +53,7 @@ function ProjView() {
       await fetchProjects();
       setEditingProject(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update project');
+      toast.error(err instanceof Error ? err.message : 'Failed to update project');
       throw err;
     }
   };

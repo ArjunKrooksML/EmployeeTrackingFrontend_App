@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Save, Plus, X, Calendar as CalendarIcon, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import { api, type Leave, type LeaveCreate } from '../lib/api';
+import { useToast } from './Toast';
+import { useConfirm } from './ConfirmDialog';
 
 type User = {
   name: string;
@@ -9,6 +11,8 @@ type User = {
 };
 
 export default function LeaveView({ user }: { user: User }) {
+  const toast = useToast();
+  const confirm = useConfirm();
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -57,8 +61,9 @@ export default function LeaveView({ user }: { user: User }) {
         leave_type: 'casual', leave_date: new Date().toISOString().split('T')[0], day_type: 'full', reason: ''
       });
       fetchLeaves();
+      toast.success('Leave request submitted');
     } catch (error: any) {
-      alert(error.message || 'Failed to request leave');
+      toast.error(error.message || 'Failed to request leave');
     } finally {
       setSubmitting(false);
     }
@@ -66,13 +71,15 @@ export default function LeaveView({ user }: { user: User }) {
 
   const handleCancel = async (leave: Leave) => {
     if (!user?.employee_id || !leave.id) return;
-    if (!confirm('Cancel this leave request?')) return;
+    const ok = await confirm({ message: 'Cancel this leave request?', confirmLabel: 'Cancel Leave', danger: true });
+    if (!ok) return;
     setCancelling(leave.id);
     try {
       await api.leaves.cancel(leave.id, user.employee_id);
       fetchLeaves();
+      toast.success('Leave request cancelled');
     } catch (err: any) {
-      alert(err.message || 'Failed to cancel leave');
+      toast.error(err.message || 'Failed to cancel leave');
     } finally {
       setCancelling(null);
     }

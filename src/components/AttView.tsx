@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api, type Attendance } from '../lib/api';
 import { MapPin } from 'lucide-react';
+import { useToast } from './Toast';
 
 type User = { employee_id?: number; name: string; [key: string]: any };
 type AttMap = Record<string, Attendance>;
@@ -32,6 +33,7 @@ function getGps(): Promise<{ lat: number; lng: number } | null> {
 }
 
 export default function AttView({ user }: { user: User }) {
+  const toast = useToast();
   const today = new Date();
   const [y, setY] = useState(today.getFullYear());
   const [m, setM] = useState(today.getMonth());
@@ -65,7 +67,7 @@ export default function AttView({ user }: { user: User }) {
 
   async function onCheck() {
     if (!user.employee_id) {
-      alert('Employee ID missing. Please log in again.');
+      toast.error('Employee ID missing. Please log in again.');
       return;
     }
     try {
@@ -83,7 +85,7 @@ export default function AttView({ user }: { user: User }) {
       setSel(k);
       await load(user.employee_id);
     } catch (e: any) {
-      alert(e?.message || 'Check-in failed. Try again.');
+      toast.error(e?.message || 'Check-in failed. Try again.');
     } finally {
       setLoading(false);
     }

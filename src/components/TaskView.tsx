@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { api, type Task } from '../lib/api';
+import { useToast } from './Toast';
 
 type User = {
   name: string;
@@ -21,6 +22,7 @@ function fmt(d: string | null | undefined) {
 }
 
 function TaskView({ user }: Props) {
+  const toast = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [selId, setSelId] = useState<number | null>(null);
@@ -64,7 +66,7 @@ function TaskView({ user }: Props) {
       setNote('');
       setSelId(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to mark task as completed');
+      toast.error(err instanceof Error ? err.message : 'Failed to mark task as completed');
     }
   };
 
