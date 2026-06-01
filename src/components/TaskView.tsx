@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { api, type Task } from '../lib/api';
 
@@ -135,7 +136,7 @@ function TaskView({ user }: Props) {
             </button>
           ))}
 
-          {sel && (
+          {sel && createPortal(
             <div
               className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
               onClick={() => { setSelId(null); setConfirm(false); setNote(''); }}
@@ -236,7 +237,8 @@ function TaskView({ user }: Props) {
                   )}
                 </div>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </>
       )}

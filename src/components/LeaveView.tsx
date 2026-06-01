@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Save, Plus, X, Calendar as CalendarIcon, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import { api, type Leave, type LeaveCreate } from '../lib/api';
 
@@ -163,7 +164,7 @@ export default function LeaveView({ user }: { user: User }) {
         </div>
       )}
 
-      {showModal && (
+      {showModal && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
@@ -243,7 +244,8 @@ export default function LeaveView({ user }: { user: User }) {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
