@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, FolderKanban, ListChecks, UserCircle, X, LayoutGrid, Home, Wallet, Menu } from 'lucide-react';
+import { CalendarDays, FolderKanban, ListChecks, UserCircle, X, LayoutGrid, Home, Wallet, Menu, Package } from 'lucide-react';
 import { ToastProvider } from './components/Toast';
 import { ConfirmProvider } from './components/ConfirmDialog';
 import NotificationBell from './components/NotificationBell';
@@ -11,6 +11,7 @@ import ProjView from './components/ProjView';
 import LeaveView from './components/LeaveView';
 import MeView from './components/MeView';
 import PayrollView from './components/PayrollView';
+import OrdersView from './components/OrdersView';
 import Login from './components/Login';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import EmpMgmt from './components/manage/EmpMgmt';
@@ -36,7 +37,7 @@ type User = {
 };
 
 // Base tabs always visible
-type BaseTab = 'dashboard' | 'att' | 'tasks' | 'proj' | 'leaves' | 'payroll' | 'me';
+type BaseTab = 'dashboard' | 'att' | 'tasks' | 'proj' | 'leaves' | 'payroll' | 'me' | 'orders';
 // Extra tabs for HR/GM
 type ManageTab = 'mg_emps' | 'mg_projs' | 'mg_tasks' | 'mg_att';
 type Tab = BaseTab | ManageTab;
@@ -185,6 +186,7 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
             { key: 'leaves', icon: <CalendarDays size={17} />, label: 'Leaves' },
             { key: 'payroll', icon: <Wallet size={17} />, label: 'Payroll' },
             { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
+            { key: 'orders', icon: <Package size={17} />, label: 'Orders' },
           ].map(item => (
             <div key={item.key} className="relative">
               {tab === item.key && (
@@ -248,6 +250,7 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
             {tab === 'leaves' && <LeaveView user={user} />}
             {tab === 'payroll' && <PayrollView />}
             {tab === 'me' && <MeView user={user} />}
+            {tab === 'orders' && <OrdersView />}
             {/* Manage tabs */}
             {isManage && canManage && (
               <div>

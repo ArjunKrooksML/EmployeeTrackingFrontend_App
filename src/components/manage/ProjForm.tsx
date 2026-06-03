@@ -10,14 +10,14 @@ interface Props { proj: Project | null; onClose: () => void; onSaved: () => void
 
 export default function ProjForm({ proj, onClose, onSaved }: Props) {
   const toast = useToast();
-  const [form, setForm] = useState({ name: '', client_name: '', address: '', start_date: '', completion_date: '' });
+  const [form, setForm] = useState({ name: '', client_name: '', address: '', start_date: '', completion_date: '', po_prefix: '' });
   const [isCompleted, setIsCompleted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (proj) {
-      setForm({ name: proj.name, client_name: proj.client_name, address: proj.address, start_date: proj.start_date||'', completion_date: proj.completion_date||'' });
+      setForm({ name: proj.name, client_name: proj.client_name, address: proj.address, start_date: proj.start_date||'', completion_date: proj.completion_date||'', po_prefix: proj.po_prefix||'' });
       setIsCompleted(!!proj.completion_date);
     } else setIsCompleted(false);
   }, [proj]);
@@ -26,7 +26,7 @@ export default function ProjForm({ proj, onClose, onSaved }: Props) {
     e.preventDefault();
     if (isCompleted && !form.completion_date) { setError('Select a completion date or uncheck "Mark as completed".'); return; }
     setLoading(true); setError('');
-    const payload = { name: form.name.trim(), client_name: form.client_name.trim(), address: form.address.trim(), start_date: form.start_date, completion_date: isCompleted ? form.completion_date : null };
+    const payload = { name: form.name.trim(), client_name: form.client_name.trim(), address: form.address.trim(), start_date: form.start_date, completion_date: isCompleted ? form.completion_date : null, po_prefix: form.po_prefix.trim() || null };
     try {
       if (proj) await api.manage.updateProject(proj.project_id, payload);
       else await api.manage.createProject(payload);
@@ -62,6 +62,10 @@ export default function ProjForm({ proj, onClose, onSaved }: Props) {
             <div>
               <label className={LABEL}>Client Name <span className="text-red-400 normal-case tracking-normal">*</span></label>
               <input name="client_name" value={form.client_name} onChange={e => setForm(f=>({...f,client_name:e.target.value}))} required placeholder="Client / company" className={INPUT} />
+            </div>
+            <div>
+              <label className={LABEL}>PO Prefix <span className="text-slate-400 normal-case font-normal tracking-normal">(optional)</span></label>
+              <input name="po_prefix" value={form.po_prefix} onChange={e => setForm(f=>({...f,po_prefix:e.target.value}))} placeholder="e.g. SVAAS-P1" className={INPUT} />
             </div>
           </div>
           <div>
