@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Plus, FileText, Truck, ChevronDown, ChevronUp, Search, X, Pencil, Trash2 } from 'lucide-react';
+import { Plus, FileText, Truck, Search, X, Pencil, Trash2, BarChart2 } from 'lucide-react';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 import { api, type Project, type PurchaseOrder, type SupplyOrder } from '../lib/api';
 import { useToast } from './Toast';
 import { useConfirm } from './ConfirmDialog';
 import POForm from './POForm';
 import SOForm from './SOForm';
+import PODetail from './PODetail';
+import SODetail from './SODetail';
+import ProjectSummaryPDF from './ProjectSummaryPDF';
 
 function fmt(d: string) {
   return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -29,8 +33,10 @@ export default function OrdersView() {
   const [showSOForm, setShowSOForm] = useState(false);
   const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [editingSO, setEditingSO] = useState<SupplyOrder | null>(null);
-  const [expandedPO, setExpandedPO] = useState<number | null>(null);
-  const [expandedSO, setExpandedSO] = useState<number | null>(null);
+  const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
+  const [selectedSO, setSelectedSO] = useState<SupplyOrder | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryProject, setSummaryProject] = useState<Project | null>(null);
 
   const [search, setSearch] = useState('');
   const [fromDate, setFromDate] = useState(defaultFrom());
@@ -64,6 +70,8 @@ export default function OrdersView() {
   const poMap = new Map(pos.map(po => [po.id, po]));
   const getProjName = (projId?: number | null) => projId ? (projMap.get(projId) ?? null) : null;
   const getSoProjName = (so: SupplyOrder) => getProjName(poMap.get(so.po_id)?.project_id) ?? so.project_name;
+  const projIdsWithPOs = new Set(pos.map(po => po.project_id).filter(Boolean));
+  const projectsWithPOs = projects.filter(p => projIdsWithPOs.has(p.project_id));
 
   const q = search.toLowerCase().trim();
 
@@ -124,9 +132,18 @@ export default function OrdersView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-800">Orders</h2>
-        <p className="text-sm text-slate-500 mt-1">Purchase orders and supply dispatches</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">Orders</h2>
+          <p className="text-sm text-slate-500 mt-1">Purchase orders and supply dispatches</p>
+        </div>
+        <button
+          onClick={() => { setSummaryProject(projectsWithPOs[0] ?? null); setShowSummary(true); }}
+          disabled={projectsWithPOs.length === 0}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition shadow-sm shadow-emerald-600/20 disabled:opacity-40"
+        >
+          <BarChart2 size={15} /> Project Summary
+        </button>
       </div>
 
       {/* Filter bar */}
@@ -136,7 +153,7 @@ export default function OrdersView() {
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by project or PO number…"
+            placeholder="Search by Projects/Purchase Order/Supply Order"
             className="flex-1 text-sm bg-transparent focus:outline-none placeholder-slate-400 min-w-0"
           />
           {search && (
@@ -193,60 +210,30 @@ export default function OrdersView() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredPOs.map(po => (
-                  <>
-                    <tr key={po.id} className="hover:bg-slate-50/80 transition">
-                      <td className="px-4 py-3">
-                        {(() => { const n = getProjName(po.project_id); return n
-                          ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-semibold">{n}</span>
-                          : <span className="text-slate-400 italic text-xs">No project</span>; })()}
-                      </td>
-                      <td className="px-4 py-3 font-mono font-semibold text-slate-800">{po.po_number}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">{po.items.length}</span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">{fmt(po.created_at)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => { setEditingPO(po); setShowPOForm(true); }}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit">
-                            <Pencil size={14} />
-                          </button>
-                          <button onClick={() => handleDeletePO(po)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
-                            <Trash2 size={14} />
-                          </button>
-                          <button onClick={() => setExpandedPO(expandedPO === po.id ? null : po.id)}
-                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition">
-                            {expandedPO === po.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {expandedPO === po.id && (
-                      <tr key={`${po.id}-exp`}>
-                        <td colSpan={5} className="px-6 pb-3 pt-1 bg-slate-50/50">
-                          <div className="rounded-lg border border-slate-200 overflow-hidden">
-                            <table className="w-full text-xs">
-                              <thead className="bg-white text-slate-400 uppercase">
-                                <tr>
-                                  <th className="px-3 py-2 text-left">Size</th>
-                                  <th className="px-3 py-2 text-right">Qty</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100">
-                                {po.items.map(item => (
-                                  <tr key={item.id}>
-                                    <td className="px-3 py-2 font-mono text-slate-700">{item.size}</td>
-                                    <td className="px-3 py-2 text-right font-semibold text-slate-800">{item.quantity}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
+                  <tr key={po.id} className="hover:bg-slate-50/80 transition cursor-pointer" onClick={() => setSelectedPO(po)}>
+                    <td className="px-4 py-3">
+                      {(() => { const n = getProjName(po.project_id); return n
+                        ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-semibold">{n}</span>
+                        : <span className="text-slate-400 italic text-xs">No project</span>; })()}
+                    </td>
+                    <td className="px-4 py-3 font-mono font-semibold text-slate-800">{po.po_number}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">{po.items.length}</span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">{fmt(po.created_at)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={e => { e.stopPropagation(); setEditingPO(po); setShowPOForm(true); }}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); handleDeletePO(po); }}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -279,7 +266,6 @@ export default function OrdersView() {
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                 <tr>
                   <th className="px-4 py-3 text-left">Project</th>
-                  <th className="px-4 py-3 text-left">PO Number</th>
                   <th className="px-4 py-3 text-left">SO #</th>
                   <th className="px-4 py-3 text-left">Date</th>
                   <th className="px-4 py-3" />
@@ -287,60 +273,35 @@ export default function OrdersView() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredSOs.map(so => (
-                  <>
-                    <tr key={so.id} className="hover:bg-slate-50/80 transition">
-                      <td className="px-4 py-3">
-                        {(() => { const n = getSoProjName(so); return n
-                          ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-semibold">{n}</span>
-                          : <span className="text-slate-400 italic text-xs">No project</span>; })()}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-slate-700 text-xs">{so.po_number}</td>
-                      <td className="px-4 py-3 font-semibold text-violet-700 text-xs">SO-{so.id}</td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">{fmt(so.created_at)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => { setEditingSO(so); setShowSOForm(true); }}
-                            className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition" title="Edit">
-                            <Pencil size={14} />
-                          </button>
-                          <button onClick={() => handleDeleteSO(so)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
-                            <Trash2 size={14} />
-                          </button>
-                          <button onClick={() => setExpandedSO(expandedSO === so.id ? null : so.id)}
-                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition">
-                            {expandedSO === so.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                          </button>
+                  <tr key={so.id} className="hover:bg-slate-50/80 transition cursor-pointer" onClick={() => setSelectedSO(so)}>
+                    <td className="px-4 py-3">
+                      {(() => { const n = getSoProjName(so); return n
+                        ? <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-semibold">{n}</span>
+                        : <span className="text-slate-400 italic text-xs">No project</span>; })()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="relative group inline-block">
+                        <span className="font-semibold text-violet-700 text-xs">SO-{so.id}</span>
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex items-center px-2.5 py-1 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap shadow-lg pointer-events-none z-10">
+                          {so.po_number}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
                         </div>
-                      </td>
-                    </tr>
-                    {expandedSO === so.id && (
-                      <tr key={`${so.id}-exp`}>
-                        <td colSpan={5} className="px-6 pb-3 pt-1 bg-slate-50/50">
-                          <div className="rounded-lg border border-slate-200 overflow-hidden">
-                            <table className="w-full text-xs">
-                              <thead className="bg-white text-slate-400 uppercase">
-                                <tr>
-                                  <th className="px-3 py-2 text-left">Size</th>
-                                  <th className="px-3 py-2 text-right">Supplied</th>
-                                  <th className="px-3 py-2 text-right">Balance</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100">
-                                {so.items.map(item => (
-                                  <tr key={item.id}>
-                                    <td className="px-3 py-2 font-mono text-slate-700">{item.size}</td>
-                                    <td className="px-3 py-2 text-right font-semibold text-violet-700">{item.supplied_qty}</td>
-                                    <td className={`px-3 py-2 text-right font-semibold ${item.balance_qty === 0 ? 'text-emerald-600' : 'text-slate-700'}`}>{item.balance_qty}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">{fmt(so.created_at)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={e => { e.stopPropagation(); setEditingSO(so); setShowSOForm(true); }}
+                          className="p-1.5 text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition" title="Edit">
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); handleDeleteSO(so); }}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -358,12 +319,85 @@ export default function OrdersView() {
       )}
       {showSOForm && (
         <SOForm
-          projects={projects}
+          projects={projectsWithPOs}
           editSO={editingSO ?? undefined}
           editPO={editingSO ? poMap.get(editingSO.po_id) : undefined}
           onClose={() => { setShowSOForm(false); setEditingSO(null); }}
           onSaved={load}
         />
+      )}
+      {selectedPO && (
+        <PODetail
+          po={selectedPO}
+          sos={sos.filter(s => s.po_id === selectedPO.id)}
+          projectName={getProjName(selectedPO.project_id)}
+          onClose={() => setSelectedPO(null)}
+        />
+      )}
+      {selectedSO && (
+        <SODetail
+          so={selectedSO}
+          po={poMap.get(selectedSO.po_id) ?? null}
+          projectName={getSoProjName(selectedSO)}
+          onClose={() => setSelectedSO(null)}
+        />
+      )}
+      {showSummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowSummary(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-xl bg-emerald-50 flex items-center justify-center"><BarChart2 size={16} className="text-emerald-600" /></div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Project Summary</h2>
+                  <p className="text-xs text-slate-400">PDF with all POs and SOs for a project</p>
+                </div>
+              </div>
+              <button onClick={() => setShowSummary(false)} className="h-8 w-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition"><X size={16} /></button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Select Project</label>
+              <select
+                value={summaryProject?.project_id ?? ''}
+                onChange={e => setSummaryProject(projectsWithPOs.find(p => p.project_id === Number(e.target.value)) ?? null)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent focus:bg-white transition"
+              >
+                {projectsWithPOs.map(p => (
+                  <option key={p.project_id} value={p.project_id}>{p.name}</option>
+                ))}
+              </select>
+              {summaryProject && (
+                <p className="text-xs text-slate-400 mt-1.5">
+                  {pos.filter(po => po.project_id === summaryProject.project_id).length} PO(s) ·{' '}
+                  {sos.filter(so => poMap.get(so.po_id)?.project_id === summaryProject.project_id).length} SO(s)
+                </p>
+              )}
+            </div>
+
+            {summaryProject && (() => {
+              const projPOs = pos.filter(po => po.project_id === summaryProject.project_id);
+              const projSOIds = new Set(projPOs.map(po => po.id));
+              const projSOs = sos.filter(so => projSOIds.has(so.po_id));
+              return (
+                <PDFDownloadLink
+                  document={<ProjectSummaryPDF project={summaryProject} pos={projPOs} sos={projSOs} />}
+                  fileName={`project-summary-${summaryProject.name.replace(/\s+/g, '-')}.pdf`}
+                >
+                  {({ loading }) => (
+                    <button
+                      disabled={loading}
+                      className="w-full flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition disabled:opacity-50"
+                    >
+                      <FileText size={15} />
+                      {loading ? 'Preparing PDF…' : 'Download PDF'}
+                    </button>
+                  )}
+                </PDFDownloadLink>
+              );
+            })()}
+          </div>
+        </div>
       )}
     </div>
   );

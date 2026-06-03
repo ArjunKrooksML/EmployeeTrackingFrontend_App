@@ -137,7 +137,7 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
         <div className="absolute -bottom-40 right-1/3 w-[450px] h-[450px] bg-purple-400/7 rounded-full blur-3xl" />
       </div>
       {/* Top nav */}
-      <nav className="bg-[#130c24] text-white border-b border-white/5 relative z-10">
+      <nav className="bg-[#130c24] text-white border-b border-white/5 relative z-20">
         <div className="px-4 sm:px-8 flex justify-between items-center h-14">
           <div className="flex items-center gap-2 sm:gap-3">
             <button type="button" onClick={() => setShowDrawer(true)} className="md:hidden p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition mr-1">
