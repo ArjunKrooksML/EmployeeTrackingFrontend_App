@@ -90,9 +90,9 @@ function App() {
 
   return (
     <ToastProvider>
-    <ConfirmProvider>
-    <AppInner user={user} handleLogout={handleLogout} />
-    </ConfirmProvider>
+      <ConfirmProvider>
+        <AppInner user={user} handleLogout={handleLogout} />
+      </ConfirmProvider>
     </ToastProvider>
   );
 }
@@ -145,7 +145,7 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
             </button>
             <button type="button" onClick={() => setTabKey(k => k + 1)} className="flex items-center gap-2">
               <img src="/svaas.png" alt="SVAAS" className="h-8 w-8 rounded-lg object-cover shadow border border-white/40" />
-              <h1 className="text-lg font-semibold tracking-tight hidden sm:block">SVAAS Inframax Solutions</h1>
+              <h1 className="text-lg font-semibold tracking-tight hidden sm:block">SVAAS Inframax Solutions OPC Pvt Ltd</h1>
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -198,9 +198,8 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
                 />
               )}
               <button onClick={() => navigate(item.key as Tab)}
-                className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  tab === item.key ? 'text-violet-300' : 'text-slate-400 hover:bg-white/8 hover:text-slate-100'
-                }`}>
+                className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${tab === item.key ? 'text-violet-300' : 'text-slate-400 hover:bg-white/8 hover:text-slate-100'
+                  }`}>
                 {item.icon}<span>{item.label}</span>
               </button>
             </div>
@@ -221,9 +220,8 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
                     />
                   )}
                   <button onClick={() => { navigate(s.key); setManageTab(s.key); }}
-                    className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      tab === s.key ? 'text-violet-300' : 'text-slate-400 hover:bg-white/8 hover:text-slate-100'
-                    }`}>
+                    className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${tab === s.key ? 'text-violet-300' : 'text-slate-400 hover:bg-white/8 hover:text-slate-100'
+                      }`}>
                     <LayoutGrid size={17} /><span>{s.label}</span>
                   </button>
                 </div>
@@ -235,41 +233,41 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto px-3 sm:px-8 py-6">
           <AnimatePresence mode="wait">
-          <motion.div
-            key={`${tab}-${tabKey}`}
-            className="relative z-10 max-w-4xl mx-auto bg-white/80 backdrop-blur-md rounded-2xl shadow-lg shadow-black/5 border border-white/70 p-4 sm:p-6"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-          >
-            {tab === 'dashboard' && <Dashboard user={user} />}
-            {tab === 'att' && <AttView user={user} />}
-            {tab === 'tasks' && <TaskView user={user} />}
-            {tab === 'proj' && <ProjView />}
-            {tab === 'leaves' && <LeaveView user={user} />}
-            {tab === 'payroll' && <PayrollView />}
-            {tab === 'me' && <MeView user={user} />}
-            {tab === 'orders' && <OrdersView />}
-            {/* Manage tabs */}
-            {isManage && canManage && (
-              <div>
-                {/* Sub-tab bar */}
-                <div className="flex gap-2 mb-5 border-b border-slate-200 pb-2 overflow-x-auto">
-                  {manageSubs.filter(s => s.show).map(s => (
-                    <button key={s.key} onClick={() => { setManageTab(s.key); navigate(s.key); }}
-                      className={`px-3 py-1.5 text-sm rounded-lg font-medium whitespace-nowrap transition ${manageTab === s.key ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
-                      {s.label}
-                    </button>
-                  ))}
+            <motion.div
+              key={`${tab}-${tabKey}`}
+              className="relative z-10 max-w-4xl mx-auto bg-white/80 backdrop-blur-md rounded-2xl shadow-lg shadow-black/5 border border-white/70 p-4 sm:p-6"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            >
+              {tab === 'dashboard' && <Dashboard user={user} />}
+              {tab === 'att' && <AttView user={user} />}
+              {tab === 'tasks' && <TaskView user={user} />}
+              {tab === 'proj' && <ProjView />}
+              {tab === 'leaves' && <LeaveView user={user} />}
+              {tab === 'payroll' && <PayrollView />}
+              {tab === 'me' && <MeView user={user} />}
+              {tab === 'orders' && <OrdersView />}
+              {/* Manage tabs */}
+              {isManage && canManage && (
+                <div>
+                  {/* Sub-tab bar */}
+                  <div className="flex gap-2 mb-5 border-b border-slate-200 pb-2 overflow-x-auto">
+                    {manageSubs.filter(s => s.show).map(s => (
+                      <button key={s.key} onClick={() => { setManageTab(s.key); navigate(s.key); }}
+                        className={`px-3 py-1.5 text-sm rounded-lg font-medium whitespace-nowrap transition ${manageTab === s.key ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                  {manageTab === 'mg_emps' && isHR && <EmpMgmt />}
+                  {manageTab === 'mg_projs' && isHR && <ProjMgmt />}
+                  {manageTab === 'mg_tasks' && (isGM || isSenior) && <TaskMgmt />}
+                  {manageTab === 'mg_att' && isGM && <AllAtt />}
                 </div>
-                {manageTab === 'mg_emps' && isHR && <EmpMgmt />}
-                {manageTab === 'mg_projs' && isHR && <ProjMgmt />}
-                {manageTab === 'mg_tasks' && (isGM || isSenior) && <TaskMgmt />}
-                {manageTab === 'mg_att' && isGM && <AllAtt />}
-              </div>
-            )}
-          </motion.div>
+              )}
+            </motion.div>
           </AnimatePresence>
         </main>
       </div>
