@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { fmtLabel } from '../utils/format';
 import { X } from 'lucide-react';
 import { api, type Task } from '../lib/api';
 import { useToast } from './Toast';
@@ -116,8 +117,8 @@ function TaskView({ user }: Props) {
                   </div>
                   <div className="task-meta">
                     <div className="task-tags">
-                      <span className={`pill pill-prio-${t.priority}`}>{t.priority}</span>
-                      <span className={`pill pill-status-${t.status}`}>{t.status.replace('_', ' ')}</span>
+                      <span className={`pill pill-prio-${t.priority}`}>{fmtLabel(t.priority)}</span>
+                      <span className={`pill pill-status-${t.status}`}>{fmtLabel(t.status)}</span>
                     </div>
                   </div>
                 </div>
@@ -151,8 +152,8 @@ function TaskView({ user }: Props) {
                   <div>
                     <h3 className="text-lg font-bold text-slate-800">{sel.task_name}</h3>
                     <div className="flex gap-2 mt-1.5">
-                      <span className={`pill pill-prio-${sel.priority}`}>{sel.priority}</span>
-                      <span className={`pill pill-status-${sel.status}`}>{sel.status.replace('_', ' ')}</span>
+                      <span className={`pill pill-prio-${sel.priority}`}>{fmtLabel(sel.priority)}</span>
+                      <span className={`pill pill-status-${sel.status}`}>{fmtLabel(sel.status)}</span>
                     </div>
                   </div>
                   <button

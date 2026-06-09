@@ -117,6 +117,17 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
   const isSenior = role === 'senior';
   const canManage = isHR || isSenior;
 
+  const NAV_ITEMS = [
+    { key: 'dashboard', icon: <Home size={17} />, label: 'Dashboard' },
+    { key: 'att', icon: <CalendarDays size={17} />, label: 'Attendance' },
+    { key: 'tasks', icon: <ListChecks size={17} />, label: 'My Tasks' },
+    { key: 'proj', icon: <FolderKanban size={17} />, label: 'Projects' },
+    { key: 'leaves', icon: <CalendarDays size={17} />, label: 'Leaves' },
+    { key: 'payroll', icon: <Wallet size={17} />, label: 'Payroll' },
+    { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
+    { key: 'orders', icon: <Package size={17} />, label: 'Orders' },
+  ];
+
   // Build manage sub-tabs for the inline manage section
   const manageSubs: { key: ManageTab; label: string; show: boolean }[] = [
     { key: 'mg_emps', label: 'Employees', show: isHR },
@@ -145,7 +156,7 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
             </button>
             <button type="button" onClick={() => setTabKey(k => k + 1)} className="flex items-center gap-2">
               <img src="/svaas.png" alt="SVAAS" className="h-8 w-8 rounded-lg object-cover shadow border border-white/40" />
-              <h1 className="text-lg font-semibold tracking-tight hidden sm:block">SVAAS Inframax Solutions OPC Pvt Ltd</h1>
+              <h1 className="text-[10px] sm:text-lg font-semibold tracking-tight leading-tight">SVAAS Inframax Solutions OPC Pvt Ltd</h1>
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -178,16 +189,7 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — desktop only */}
         <aside className="hidden md:flex w-56 bg-[#130c24] text-slate-100 flex-col px-3 py-5 space-y-0.5 border-r border-white/5">
-          {[
-            { key: 'dashboard', icon: <Home size={17} />, label: 'Dashboard' },
-            { key: 'att', icon: <CalendarDays size={17} />, label: 'Attendance' },
-            { key: 'tasks', icon: <ListChecks size={17} />, label: 'My Tasks' },
-            { key: 'proj', icon: <FolderKanban size={17} />, label: 'Projects' },
-            { key: 'leaves', icon: <CalendarDays size={17} />, label: 'Leaves' },
-            { key: 'payroll', icon: <Wallet size={17} />, label: 'Payroll' },
-            { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
-            { key: 'orders', icon: <Package size={17} />, label: 'Orders' },
-          ].map(item => (
+          {NAV_ITEMS.map(item => (
             <div key={item.key} className="relative">
               {tab === item.key && (
                 <motion.div
@@ -290,15 +292,7 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
                 <span className="text-sm font-semibold text-slate-300 tracking-wide uppercase">Menu</span>
                 <button onClick={() => setShowDrawer(false)} className="text-slate-400 hover:text-white p-1"><X size={18} /></button>
               </div>
-              {[
-                { key: 'dashboard', icon: <Home size={17} />, label: 'Dashboard' },
-                { key: 'att', icon: <CalendarDays size={17} />, label: 'Attendance' },
-                { key: 'tasks', icon: <ListChecks size={17} />, label: 'My Tasks' },
-                { key: 'proj', icon: <FolderKanban size={17} />, label: 'Projects' },
-                { key: 'leaves', icon: <CalendarDays size={17} />, label: 'Leaves' },
-                { key: 'payroll', icon: <Wallet size={17} />, label: 'Payroll' },
-                { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
-              ].map(item => (
+              {NAV_ITEMS.map(item => (
                 <button key={item.key} onClick={() => { navigate(item.key as Tab); setShowDrawer(false); }}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${tab === item.key
                     ? 'bg-violet-500/15 text-violet-300 border-l-2 border-violet-500'

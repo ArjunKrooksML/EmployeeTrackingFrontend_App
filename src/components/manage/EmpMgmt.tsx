@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { api, type Employee } from '../../lib/api';
 import { Plus, Edit2, Trash2, CheckSquare, X } from 'lucide-react';
 import EmpForm from './EmpForm';
+import EmpOverview from './EmpOverview';
+import { fmtLabel } from '../../utils/format';
 import { useToast } from '../Toast';
 import { useConfirm } from '../ConfirmDialog';
 
@@ -12,6 +14,7 @@ export default function EmpMgmt() {
   const [selected, setSelected] = useState<Employee | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [viewingEmp, setViewingEmp] = useState<Employee | null>(null);
   const toast = useToast();
   const confirm = useConfirm();
 
@@ -91,9 +94,9 @@ export default function EmpMgmt() {
           const isSelected = selectedIds.has(e.employee_id);
           return (
             <div key={e.employee_id}
-              className={`animate-row flex items-center justify-between p-3 rounded-xl border transition ${selecting ? 'cursor-pointer' : 'hover:-translate-y-px hover:shadow-sm'} ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
+              className={`animate-row flex items-center justify-between p-3 rounded-xl border transition cursor-pointer ${selecting ? '' : 'hover:-translate-y-px hover:shadow-sm'} ${isSelected ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
               style={{ animationDelay: `${i * 0.04}s` }}
-              onClick={selecting ? () => toggleSelect(e.employee_id) : undefined}>
+              onClick={selecting ? () => toggleSelect(e.employee_id) : () => setViewingEmp(e)}>
               <div className="flex items-center gap-2">
                 {selecting && (
                   <input type="checkbox" checked={isSelected}
@@ -103,19 +106,20 @@ export default function EmpMgmt() {
                 )}
                 <div>
                   <div className="font-medium text-sm text-slate-800">{e.employee_name}</div>
-                  <div className="text-xs text-slate-500">{e.email} · <span className="capitalize">{e.role || 'employee'}</span></div>
+                  <div className="text-xs text-slate-500">{e.email} · {fmtLabel(e.role || 'employee')}</div>
                 </div>
               </div>
               {!selecting && (
                 <div className="flex gap-2">
-                  <button onClick={() => openEdit(e)} className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600 transition"><Edit2 size={15} /></button>
-                  <button onClick={() => del(e.employee_id)} className="p-1.5 hover:bg-red-100 rounded-lg text-red-500 transition"><Trash2 size={15} /></button>
+                  <button onClick={ev => { ev.stopPropagation(); openEdit(e); }} className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600 transition"><Edit2 size={15} /></button>
+                  <button onClick={ev => { ev.stopPropagation(); del(e.employee_id); }} className="p-1.5 hover:bg-red-100 rounded-lg text-red-500 transition"><Trash2 size={15} /></button>
                 </div>
               )}
             </div>
           );
         })}
       </div>
+      {viewingEmp && <EmpOverview employee={viewingEmp} onClose={() => setViewingEmp(null)} />}
     </div>
   );
 }

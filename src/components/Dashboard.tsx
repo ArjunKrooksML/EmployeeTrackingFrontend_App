@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { api, type Task, type Attendance, type Leave } from '../lib/api';
+import { fmtLabel } from '../utils/format';
 import { ResponsivePie } from '@nivo/pie';
 import { ResponsiveBar } from '@nivo/bar';
 import { ListChecks, CalendarDays, CheckCircle2, Briefcase, FileText } from 'lucide-react';
@@ -206,14 +207,14 @@ export default function Dashboard({ user }: DashboardProps) {
           key: `t-${t.task_id}`,
           icon: <ListChecks size={14} className="text-violet-500" />,
           title: t.task_name,
-          sub: `Task · ${t.status.replace('_', ' ')}`,
+          sub: `Task · ${fmtLabel(t.status)}`,
           time: t.created ?? '',
         }));
         leaves.slice(0, 3).forEach(l => events.push({
           key: `l-${l.id ?? Math.random()}`,
           icon: <FileText size={14} className="text-indigo-500" />,
           title: 'Leave request',
-          sub: `${l.status} · ${l.leave_date ?? ''}`,
+          sub: `${fmtLabel(l.status)} · ${l.leave_date ?? ''}`,
           time: l.leave_date ?? '',
         }));
         attendance.slice(0, 3).forEach(a => events.push({

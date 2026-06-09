@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fmtLabel } from '../utils/format';
 import { createPortal } from 'react-dom';
 import { Save, Plus, X, Calendar as CalendarIcon, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import { api, type Leave, type LeaveCreate } from '../lib/api';
@@ -130,22 +131,22 @@ export default function LeaveView({ user }: { user: User }) {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-bold text-slate-800 capitalize select-none">{leave.leave_type} Leave</span>
+                    <span className="text-sm font-bold text-slate-800 select-none">{fmtLabel(leave.leave_type)} Leave</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600">
                     <CalendarIcon size={14} className="text-slate-400" />
                     {new Date(leave.leave_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
                 </div>
-                <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${getStatusColor(leave.status)}`}>
-                  {leave.status}
+                <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusColor(leave.status)}`}>
+                  {fmtLabel(leave.status)}
                 </span>
               </div>
               
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">
                   <Clock size={14} className="text-violet-500" />
-                  <span className="capitalize">{leave.day_type.replace('_', ' ')}</span>
+                  <span>{fmtLabel(leave.day_type)}</span>
                 </div>
                 {leave.reason && (
                   <div className="flex items-start gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, type Task } from '../../lib/api';
+import { fmtLabel } from '../../utils/format';
 import { Plus, Edit2, Trash2, CheckSquare, X } from 'lucide-react';
 import TaskForm from './TaskForm';
 import { useToast } from '../Toast';
@@ -118,9 +119,9 @@ export default function TaskMgmt() {
                   <div className="font-medium text-sm text-slate-800 truncate">{t.task_name}</div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1 ${statusColor[t.status] || 'bg-slate-100 text-slate-600'}`}>
-                      <span className={`badge-dot ${statusDot[t.status] || 'bg-slate-400'}`} />{t.status}
+                      <span className={`badge-dot ${statusDot[t.status] || 'bg-slate-400'}`} />{fmtLabel(t.status)}
                     </span>
-                    <span className="text-xs text-slate-400">{t.priority}</span>
+                    <span className="text-xs text-slate-400">{fmtLabel(t.priority)}</span>
                   </div>
                 </div>
               </div>
