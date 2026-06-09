@@ -14,6 +14,7 @@ import PayrollView from './components/PayrollView';
 import OrdersView from './components/OrdersView';
 import Login from './components/Login';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import ChatBot from './components/ChatBot';
 import EmpMgmt from './components/manage/EmpMgmt';
 import ProjMgmt from './components/manage/ProjMgmt';
 import TaskMgmt from './components/manage/TaskMgmt';
@@ -353,6 +354,7 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
       </AnimatePresence>
 
       {showChangePass && <ChangePasswordModal onClose={() => setShowChangePass(false)} />}
+      <ChatBot />
     </div>
   );
 }
