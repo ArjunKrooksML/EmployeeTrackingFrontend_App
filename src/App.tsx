@@ -13,6 +13,7 @@ import MeView from './components/MeView';
 import PayrollView from './components/PayrollView';
 import OrdersView from './components/OrdersView';
 import Login from './components/Login';
+import { api } from './lib/api';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import ChatBot from './components/ChatBot';
 import EmpMgmt from './components/manage/EmpMgmt';
@@ -80,9 +81,8 @@ function App() {
     localStorage.setItem('empUser', JSON.stringify(employee));
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('empAccessToken');
-    localStorage.removeItem('empRefreshToken');
+  const handleLogout = async () => {
+    await api.auth.logout();
     localStorage.removeItem('empUser');
     setUser(null);
   };

@@ -228,7 +228,17 @@ export const api = {
         body: JSON.stringify({ refresh_token: refresh }),
       }, false);
     },
-    logout: () => {
+    logout: async () => {
+      const refresh = getRefreshToken();
+      if (refresh) {
+        try {
+          await fetch(`${BACKEND_URL}/employees/logout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refresh }),
+          });
+        } catch {}
+      }
       localStorage.removeItem('empAccessToken');
       localStorage.removeItem('empRefreshToken');
     },
