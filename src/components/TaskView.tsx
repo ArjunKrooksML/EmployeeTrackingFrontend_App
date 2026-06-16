@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtLabel } from '../utils/format';
-import { X } from 'lucide-react';
+import { X, Paperclip } from 'lucide-react';
 import { api, type Task } from '../lib/api';
 import { useToast } from './Toast';
 
@@ -30,6 +30,7 @@ function TaskView({ user }: Props) {
   const [note, setNote] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [atts, setAtts] = useState<{ id: number; file_name: string; url: string }[]>([]);
 
   useEffect(() => {
     fetchTasks();
@@ -56,6 +57,8 @@ function TaskView({ user }: Props) {
     setSelId(id);
     setConfirm(false);
     setNote('');
+    setAtts([]);
+    api.tasks.getAttachments(id).then(setAtts).catch(() => {});
   };
 
   const onDone = async () => {
@@ -199,6 +202,17 @@ function TaskView({ user }: Props) {
                       </div>
                     )}
                   </div>
+
+                  {atts.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5"><Paperclip size={12} /> Attachments</p>
+                      {atts.map(a => (
+                        <a key={a.id} href={a.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:underline truncate">
+                          <Paperclip size={12} className="shrink-0" />{a.file_name}
+                        </a>
+                      ))}
+                    </div>
+                  )}
 
                   {!confirm ? (
                     <button

@@ -270,6 +270,22 @@ export const api = {
         method: 'PUT',
       });
     },
+    getAttachments: (taskId: number): Promise<{ id: number; file_name: string; url: string; uploaded_at: string }[]> =>
+      apiRequest(`/tasks/${taskId}/attachments`),
+    uploadAttachment: async (taskId: number, file: File): Promise<{ id: number; file_name: string; url: string; uploaded_at: string }> => {
+      const form = new FormData();
+      form.append('file', file);
+      const token = getAccessToken();
+      const res = await fetch(`${BACKEND_URL}/tasks/${taskId}/attachments`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Upload failed');
+      return res.json();
+    },
+    deleteAttachment: (taskId: number, attId: number): Promise<void> =>
+      apiRequest(`/tasks/${taskId}/attachments/${attId}`, { method: 'DELETE' }),
   },
   projects: {
     getAll: async (): Promise<Project[]> => {

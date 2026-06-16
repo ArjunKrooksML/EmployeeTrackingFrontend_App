@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, type Task, type Employee, type Project } from '../../lib/api';
-import { X, ListChecks, Users, Calendar, Tag } from 'lucide-react';
+import { X, ListChecks, Users, Calendar, Tag, Paperclip, Trash2 } from 'lucide-react';
 import { useToast } from '../Toast';
 import ProjectSearch from '../ProjectSearch';
 
@@ -31,6 +31,9 @@ export default function TaskForm({ task, onClose, onSaved }: Props) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
+  const [atts, setAtts] = useState<{ id: number; file_name: string; url: string }[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     api.manage.getEmployees().then(setEmployees).catch(() => {});
@@ -38,8 +41,36 @@ export default function TaskForm({ task, onClose, onSaved }: Props) {
   }, []);
 
   useEffect(() => {
-    if (task) setForm({ task_name: task.task_name, description: task.description||'', project_id: task.project_id?.toString()||'', assigned_to: task.assigned_to?.toString()||'', status: task.status, priority: task.priority, start_date: task.start_date||'', deadline: task.deadline||'', task_type: task.task_type||'', tools_type: task.tools_type||'' });
-  }, [task]);
+    if (task) {
+      setForm({ task_name: task.task_name, description: task.description||'', project_id: task.project_id?.toString()||'', assigned_to: task.assigned_to?.toString()||'', status: task.status, priority: task.priority, start_date: task.start_date||'', deadline: task.deadline||'', task_type: task.task_type||'', tools_type: task.tools_type||'' });
+      api.tasks.getAttachments(task.task_id).then(setAtts).catch(() => {});
+    }
+  }, [task?.task_id]);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (task) {
+      setUploading(true);
+      try {
+        const att = await api.tasks.uploadAttachment(task.task_id, file);
+        setAtts(prev => [...prev, att]);
+        toast.success('File attached');
+      } catch { toast.error('Upload failed'); }
+      setUploading(false);
+    } else {
+      setPendingFiles(prev => [...prev, file]);
+    }
+    e.target.value = '';
+  }
+
+  async function handleDeleteAtt(attId: number) {
+    if (!task) return;
+    try {
+      await api.tasks.deleteAttachment(task.task_id, attId);
+      setAtts(prev => prev.filter(a => a.id !== attId));
+    } catch { toast.error('Failed to remove'); }
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>) {
     const { name, value } = e.target;
@@ -52,8 +83,14 @@ export default function TaskForm({ task, onClose, onSaved }: Props) {
     setLoading(true);
     const payload = { task_name: form.task_name.trim(), description: form.description.trim()||null, project_id: Number(form.project_id), assigned_to: form.assigned_to ? Number(form.assigned_to) : null, status: form.status, priority: form.priority, start_date: form.start_date||null, deadline: form.deadline||null, iscompleted: form.status === 'completed', task_type: form.task_type||null, tools_type: form.task_type === 'Tools' ? (form.tools_type||null) : null };
     try {
-      if (task) await api.manage.updateTask(task.task_id, payload);
-      else await api.manage.createTask(payload);
+      if (task) {
+        await api.manage.updateTask(task.task_id, payload);
+      } else {
+        const created = await api.manage.createTask(payload);
+        for (const file of pendingFiles) {
+          try { await api.tasks.uploadAttachment(created.task_id, file); } catch { /* silent */ }
+        }
+      }
       toast.success(task ? 'Task updated' : 'Task created');
       onSaved(); onClose();
     } catch (err: any) { toast.error(err.message || 'Failed to save task'); }
@@ -79,6 +116,25 @@ export default function TaskForm({ task, onClose, onSaved }: Props) {
           <div>
             <label className={LABEL}>Description</label>
             <textarea name="description" value={form.description} onChange={handleChange} rows={2} placeholder="Optional details…" className={INPUT + ' resize-none'} />
+          </div>
+          <div>
+            {atts.map(a => (
+              <div key={a.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 mb-1.5">
+                <a href={a.url} target="_blank" rel="noreferrer" className="text-sm text-indigo-600 hover:underline truncate max-w-[85%]">{a.file_name}</a>
+                <button type="button" onClick={() => handleDeleteAtt(a.id)} className="text-slate-400 hover:text-red-500 transition ml-2 shrink-0"><Trash2 size={14} /></button>
+              </div>
+            ))}
+            {pendingFiles.map((f, i) => (
+              <div key={i} className="flex items-center justify-between bg-orange-50 rounded-lg px-3 py-2 mb-1.5">
+                <span className="text-sm text-slate-700 truncate max-w-[85%]">{f.name}</span>
+                <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))} className="text-slate-400 hover:text-red-500 transition ml-2 shrink-0"><Trash2 size={14} /></button>
+              </div>
+            ))}
+            <label className={`inline-flex items-center gap-1.5 cursor-pointer text-sm font-medium text-slate-500 hover:text-indigo-600 transition ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              <Paperclip size={14} />
+              {uploading ? 'Uploading…' : 'Attach a file'}
+              <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
+            </label>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -150,6 +206,7 @@ export default function TaskForm({ task, onClose, onSaved }: Props) {
             </div>
           </div>
         </Section>
+
       </form>
 
       <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
