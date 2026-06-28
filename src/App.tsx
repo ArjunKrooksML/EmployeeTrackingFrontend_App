@@ -44,6 +44,14 @@ type BaseTab = 'dashboard' | 'att' | 'tasks' | 'proj' | 'leaves' | 'payroll' | '
 type ManageTab = 'mg_emps' | 'mg_projs' | 'mg_tasks' | 'mg_att';
 type Tab = BaseTab | ManageTab;
 
+function isExpired(token: string | null): boolean {
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.exp * 1000 < Date.now();
+  } catch { return true; }
+}
+
 function roleLabel(r?: string) {
   const map: Record<string, string> = { employee: 'Employee', senior: 'Senior', hr: 'HR', gm: 'GM' };
   return map[r || 'employee'] || r || 'Employee';
@@ -53,12 +61,16 @@ function App() {
   const [user, setUser] = useState<User | null>(() => {
     try {
       const raw = localStorage.getItem('empUser');
-      if (raw) {
-        const parsed = JSON.parse(raw) as User;
-        if (!parsed.employee_id) { localStorage.removeItem('empUser'); return null; }
-        return parsed;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as User;
+      if (!parsed.employee_id) { localStorage.removeItem('empUser'); return null; }
+      if (isExpired(localStorage.getItem('empAccessToken')) && isExpired(localStorage.getItem('empRefreshToken'))) {
+        localStorage.removeItem('empUser');
+        localStorage.removeItem('empAccessToken');
+        localStorage.removeItem('empRefreshToken');
+        return null;
       }
-      return null;
+      return parsed;
     } catch { return null; }
   });
 
@@ -81,10 +93,10 @@ function App() {
     localStorage.setItem('empUser', JSON.stringify(employee));
   };
 
-  const handleLogout = async () => {
-    await api.auth.logout();
+  const handleLogout = () => {
     localStorage.removeItem('empUser');
     setUser(null);
+    api.auth.logout();
   };
 
   if (!user) return <Login onLogin={handleLogin} />;

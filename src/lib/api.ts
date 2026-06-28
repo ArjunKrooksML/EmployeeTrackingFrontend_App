@@ -230,6 +230,8 @@ export const api = {
     },
     logout: async () => {
       const refresh = getRefreshToken();
+      localStorage.removeItem('empAccessToken');
+      localStorage.removeItem('empRefreshToken');
       if (refresh) {
         try {
           await fetch(`${BACKEND_URL}/employees/logout`, {
@@ -239,8 +241,6 @@ export const api = {
           });
         } catch {}
       }
-      localStorage.removeItem('empAccessToken');
-      localStorage.removeItem('empRefreshToken');
     },
     sendOtp: async (email: string): Promise<void> => {
       return apiRequest<void>('/employees/send-otp', {
