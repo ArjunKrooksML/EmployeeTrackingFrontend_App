@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, FolderKanban, ListChecks, UserCircle, X, LayoutGrid, Home, Wallet, Menu, Package } from 'lucide-react';
+import { CalendarDays, FolderKanban, ListChecks, UserCircle, X, LayoutGrid, Home, Wallet, Menu, Package, FileText, Receipt } from 'lucide-react';
 import { ToastProvider } from './components/Toast';
 import { ConfirmProvider } from './components/ConfirmDialog';
 import NotificationBell from './components/NotificationBell';
@@ -16,6 +16,8 @@ import Login from './components/Login';
 import { api } from './lib/api';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import ChatBot from './components/ChatBot';
+import DPRView from './components/DPRView';
+import ExpensesView from './components/ExpensesView';
 import EmpMgmt from './components/manage/EmpMgmt';
 import ProjMgmt from './components/manage/ProjMgmt';
 import TaskMgmt from './components/manage/TaskMgmt';
@@ -39,7 +41,7 @@ type User = {
 };
 
 // Base tabs always visible
-type BaseTab = 'dashboard' | 'att' | 'tasks' | 'proj' | 'leaves' | 'payroll' | 'me' | 'orders';
+type BaseTab = 'dashboard' | 'att' | 'tasks' | 'proj' | 'leaves' | 'payroll' | 'me' | 'orders' | 'dpr' | 'expenses';
 // Extra tabs for HR/GM
 type ManageTab = 'mg_emps' | 'mg_projs' | 'mg_tasks' | 'mg_att';
 type Tab = BaseTab | ManageTab;
@@ -139,6 +141,8 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
     { key: 'payroll', icon: <Wallet size={17} />, label: 'Payroll' },
     { key: 'me', icon: <UserCircle size={17} />, label: 'Profile' },
     { key: 'orders', icon: <Package size={17} />, label: 'Orders' },
+    { key: 'dpr', icon: <FileText size={17} />, label: 'DPR' },
+    { key: 'expenses', icon: <Receipt size={17} />, label: 'Expenses' },
   ];
 
   // Build manage sub-tabs for the inline manage section
@@ -264,6 +268,8 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
               {tab === 'payroll' && <PayrollView />}
               {tab === 'me' && <MeView user={user} />}
               {tab === 'orders' && <OrdersView />}
+              {tab === 'dpr' && <DPRView />}
+              {tab === 'expenses' && <ExpensesView />}
               {/* Manage tabs */}
               {isManage && canManage && (
                 <div>

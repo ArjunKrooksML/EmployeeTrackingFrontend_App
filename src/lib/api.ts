@@ -146,6 +146,51 @@ async function apiRequest<T>(
   }
 }
 
+async function apiRequestForm<T>(endpoint: string, body: FormData, retry = true): Promise<T> {
+  const url = `${BACKEND_URL}${endpoint}`;
+  const token = getAccessToken();
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body,
+  });
+  if (response.status === 401 && retry && getRefreshToken()) {
+    const newToken = await refreshToken();
+    if (newToken) return apiRequestForm<T>(endpoint, body, false);
+  }
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(err.detail || 'Request failed');
+  }
+  return response.json();
+}
+
+export interface DPREntry {
+  id: number;
+  project_id: number;
+  date: string;
+  description: string;
+  uploaded_by: string;
+  created_at: string;
+}
+
+export interface PaginatedResponse<T> { items: T[]; total: number; page: number; page_size: number; pages: number; }
+
+export interface ExpItem { description: string; amount: number; }
+
+export interface ExpenseResp {
+  id: number;
+  employee_id: number;
+  title: string;
+  date: string;
+  items: ExpItem[];
+  attachment_url?: string;
+  attachment_name?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  remarks?: string;
+  created_at: string;
+}
+
 export interface Employee {
   employee_id: number;
   employee_name: string;
@@ -368,6 +413,17 @@ export const api = {
     updateSO: (id: number, data: { po_id: number; invoice_number?: string | null; items: { size: string; supplied_qty: number; balance_qty: number }[] }): Promise<SupplyOrder> =>
       apiRequest(`/orders/so/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteSO: (id: number): Promise<void> => apiRequest(`/orders/so/${id}`, { method: 'DELETE' }),
+  },
+  dpr: {
+    projects: (): Promise<Project[]> => apiRequest('/dpr/projects'),
+    list: (projectId: number, page = 1, pageSize = 100): Promise<PaginatedResponse<DPREntry>> =>
+      apiRequest(`/dpr/${projectId}?page=${page}&page_size=${pageSize}`),
+    create: (projectId: number, date: string, description: string): Promise<DPREntry> =>
+      apiRequest(`/dpr/${projectId}`, { method: 'POST', body: JSON.stringify({ date, description }) }),
+  },
+  expenses: {
+    mine: (): Promise<ExpenseResp[]> => apiRequest('/expenses/mine'),
+    create: (form: FormData): Promise<ExpenseResp> => apiRequestForm('/expenses', form),
   },
   salary: {
     getMy: async (): Promise<SalaryDeduction[]> =>

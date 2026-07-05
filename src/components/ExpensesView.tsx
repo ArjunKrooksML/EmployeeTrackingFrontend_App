@@ -1,0 +1,355 @@
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Trash2, Paperclip, X, ArrowLeft } from 'lucide-react';
+import { api } from '../lib/api';
+import type { ExpenseResp, ExpItem } from '../lib/api';
+import { useToast } from './Toast';
+
+const statusBadge = (s: string) => {
+  if (s === 'approved') return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">Approved</span>;
+  if (s === 'rejected') return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">Rejected</span>;
+  return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">Pending</span>;
+};
+
+const calcTotal = (items: ExpItem[]) => items.reduce((s, i) => s + Number(i.amount || 0), 0);
+
+type FormItem = { description: string; amount: string };
+type StatusTab = 'all' | 'pending' | 'approved' | 'rejected';
+const STATUS_TABS: { key: StatusTab; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'approved', label: 'Approved' },
+  { key: 'rejected', label: 'Rejected' },
+];
+
+export default function ExpensesView() {
+  const toast = useToast();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [expenses, setExpenses] = useState<ExpenseResp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<'list' | 'form' | 'detail'>('list');
+  const [detailExp, setDetailExp] = useState<ExpenseResp | null>(null);
+  const [activeTab, setActiveTab] = useState<StatusTab>('all');
+  const [submitting, setSubmitting] = useState(false);
+
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [items, setItems] = useState<FormItem[]>([{ description: '', amount: '' }]);
+  const [file, setFile] = useState<File | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    api.expenses.mine()
+      .then(setExpenses)
+      .catch(() => toast.error('Failed to load expenses'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const resetForm = () => {
+    setTitle('');
+    setDate(new Date().toISOString().slice(0, 10));
+    setItems([{ description: '', amount: '' }]);
+    setFile(null);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const addItem = () => setItems(prev => [...prev, { description: '', amount: '' }]);
+  const removeItem = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i));
+  const updateItem = (i: number, field: keyof FormItem, val: string) =>
+    setItems(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
+
+  const handleSubmit = async () => {
+    if (!title.trim()) return toast.error('Title is required');
+    if (items.some(it => !it.description.trim() || !it.amount)) return toast.error('Fill all expense items');
+    if (!file) return toast.error('Please attach a supporting document');
+    setSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append('title', title.trim());
+      form.append('date', date);
+      form.append('items', JSON.stringify(items.map(it => ({ description: it.description.trim(), amount: parseFloat(it.amount) }))));
+      if (file) form.append('file', file);
+      await api.expenses.create(form);
+      toast.success('Expense filed successfully');
+      resetForm();
+      setView('list');
+      load();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to file expense');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const counts = {
+    all: expenses.length,
+    pending: expenses.filter(e => e.status === 'pending').length,
+    approved: expenses.filter(e => e.status === 'approved').length,
+    rejected: expenses.filter(e => e.status === 'rejected').length,
+  };
+  const visible = activeTab === 'all' ? expenses : expenses.filter(e => e.status === activeTab);
+
+  const ExpCard = ({ e }: { e: ExpenseResp }) => (
+    <div
+      onClick={() => { setDetailExp(e); setView('detail'); }}
+      className="border border-slate-200 rounded-xl p-4 hover:bg-slate-50 cursor-pointer transition"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-slate-800 truncate">{e.title}</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          {statusBadge(e.status)}
+          <span className="text-sm font-semibold text-slate-800">₹{calcTotal(e.items).toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+      {e.attachment_name && (
+        <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
+          <Paperclip size={11} /> {e.attachment_name}
+        </div>
+      )}
+      {e.remarks && (
+        <p className="text-xs text-slate-500 mt-2 bg-slate-50 rounded px-2 py-1 italic">{e.remarks}</p>
+      )}
+    </div>
+  );
+
+
+  // ── Form view ──────────────────────────────────────────────────────────
+  if (view === 'form') return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => { setView('list'); resetForm(); }}
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition"
+        >
+          <ArrowLeft size={16} /> Back
+        </button>
+        <div className="h-4 w-px bg-slate-300" />
+        <h2 className="text-lg font-bold text-slate-800">File Expense Statement</h2>
+      </div>
+
+      <div className="space-y-5 max-w-lg">
+
+        {/* Title + Date row */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Title <span className="text-red-400">*</span></label>
+            <input
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="e.g. Site visit"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Date <span className="text-red-400">*</span></label>
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+            />
+          </div>
+        </div>
+
+        {/* Expense items */}
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-2">Expense Items <span className="text-red-400">*</span></label>
+          <div className="border border-slate-200 rounded-xl overflow-hidden">
+            {/* Header */}
+            <div className="grid grid-cols-[1fr_110px_36px] gap-0 bg-slate-50 border-b border-slate-200 px-3 py-2 text-xs font-medium text-slate-500">
+              <span>Description</span><span>Amount (₹)</span><span />
+            </div>
+            {/* Rows */}
+            <div className="divide-y divide-slate-100">
+              {items.map((item, i) => (
+                <div key={i} className="grid grid-cols-[1fr_110px_36px] gap-0 items-center">
+                  <input
+                    type="text"
+                    value={item.description}
+                    onChange={e => updateItem(i, 'description', e.target.value)}
+                    placeholder="e.g. Travel"
+                    className="px-3 py-2.5 text-sm border-0 focus:outline-none focus:bg-violet-50/50 w-full"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.amount}
+                    onChange={e => updateItem(i, 'amount', e.target.value)}
+                    placeholder="0.00"
+                    className="px-3 py-2.5 text-sm border-0 border-l border-slate-100 focus:outline-none focus:bg-violet-50/50 w-full"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeItem(i)}
+                    disabled={items.length === 1}
+                    className="flex items-center justify-center h-full border-l border-slate-100 text-slate-300 hover:text-red-400 disabled:opacity-0 transition"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {/* Footer */}
+            <div className="flex items-center justify-between bg-slate-50 border-t border-slate-200 px-3 py-2">
+              <button type="button" onClick={addItem}
+                className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 font-medium transition">
+                <Plus size={13} /> Add Item
+              </button>
+              <span className="text-sm font-semibold text-slate-700">
+                Total: ₹{items.reduce((s, it) => s + parseFloat(it.amount || '0'), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Attachment — mandatory */}
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-2">Attachment <span className="text-red-400">*</span></label>
+          <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+            onChange={e => setFile(e.target.files?.[0] || null)} className="hidden" id="exp-file" />
+          <label htmlFor="exp-file"
+            className={`flex flex-col items-center justify-center gap-1.5 w-full py-5 border-2 border-dashed rounded-xl cursor-pointer transition
+              ${file ? 'border-violet-400 bg-violet-50' : 'border-slate-300 hover:border-violet-400 hover:bg-slate-50'}`}>
+            <Paperclip size={18} className={file ? 'text-violet-500' : 'text-slate-400'} />
+            <span className={`text-sm font-medium ${file ? 'text-violet-700' : 'text-slate-600'}`}>
+              {file ? file.name : 'Click to upload receipt or document'}
+            </span>
+            <span className="text-xs text-slate-400">Images, PDF, Word, Excel</span>
+          </label>
+          {file && (
+            <button type="button" onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ''; }}
+              className="mt-1.5 text-xs text-slate-400 hover:text-red-500 transition flex items-center gap-1">
+              <X size={12} /> Remove
+            </button>
+          )}
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <button onClick={() => { setView('list'); resetForm(); }}
+            className="px-4 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition">
+            Cancel
+          </button>
+          <button onClick={handleSubmit} disabled={submitting}
+            className="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50 transition">
+            {submitting ? 'Submitting…' : 'Submit Expense'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Detail view ────────────────────────────────────────────────────────
+  if (view === 'detail' && detailExp) return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={() => setView('list')} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition">
+          <ArrowLeft size={16} /> Back
+        </button>
+        <div className="h-4 w-px bg-slate-300" />
+        <div>
+          <h2 className="text-lg font-bold text-slate-800">{detailExp.title}</h2>
+          <p className="text-xs text-slate-500">
+            {new Date(detailExp.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+        <div className="ml-2">{statusBadge(detailExp.status)}</div>
+      </div>
+
+      <div className="space-y-5 max-w-lg">
+        <div>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Expense Items</p>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-xs text-slate-500">
+                <th className="px-3 py-1.5 text-left rounded-tl font-medium">Description</th>
+                <th className="px-3 py-1.5 text-right rounded-tr font-medium">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {detailExp.items.map((item, i) => (
+                <tr key={i}>
+                  <td className="px-3 py-2 text-slate-700">{item.description}</td>
+                  <td className="px-3 py-2 text-right font-medium">₹{Number(item.amount).toLocaleString('en-IN')}</td>
+                </tr>
+              ))}
+              <tr className="bg-slate-50 font-semibold">
+                <td className="px-3 py-2 text-slate-700 rounded-bl">Total</td>
+                <td className="px-3 py-2 text-right text-slate-800 rounded-br">₹{calcTotal(detailExp.items).toLocaleString('en-IN')}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {detailExp.attachment_url && (
+          <a href={detailExp.attachment_url} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-violet-600 hover:text-violet-800 transition">
+            <Paperclip size={14} /> {detailExp.attachment_name || 'View Attachment'}
+          </a>
+        )}
+
+        {detailExp.remarks && (
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Remarks</p>
+            <p className="text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2">{detailExp.remarks}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ── List view ──────────────────────────────────────────────────────────
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">My Expenses</h2>
+          <p className="text-sm text-slate-500 mt-0.5">{expenses.length} total submissions</p>
+        </div>
+        <button
+          onClick={() => setView('form')}
+          className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition"
+        >
+          <Plus size={15} /> File Expense
+        </button>
+      </div>
+
+      <div className="flex gap-1 mb-5 border-b border-slate-200">
+        {STATUS_TABS.map(t => (
+          <button key={t.key} onClick={() => setActiveTab(t.key)}
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg transition-colors
+              ${activeTab === t.key
+                ? 'text-violet-600 border-b-2 border-violet-600 -mb-px bg-white'
+                : 'text-slate-500 hover:text-slate-800'}`}>
+            {t.label}
+            {counts[t.key] > 0 && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium
+                ${activeTab === t.key ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'}`}>
+                {counts[t.key]}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16 text-slate-400">Loading…</div>
+      ) : visible.length === 0 ? (
+        <div className="flex justify-center py-16 text-slate-400 text-sm">
+          No {activeTab === 'all' ? '' : activeTab} expenses
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {visible.map(e => <ExpCard key={e.id} e={e} />)}
+        </div>
+      )}
+    </div>
+  );
+}

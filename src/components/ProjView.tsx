@@ -1,268 +1,198 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ArrowLeft, FolderKanban } from 'lucide-react';
 import { api, type Project } from '../lib/api';
 import { useToast } from './Toast';
 
 function fmt(d: string | null | undefined) {
-  if (!d) return '-';
+  if (!d) return '—';
   const obj = new Date(d);
   if (Number.isNaN(obj.getTime())) return d;
-  return obj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return obj.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+type FormData = {
+  name: string;
+  client_name: string;
+  address: string;
+  start_date: string;
+  completion_date: string;
+  isCompleted: boolean;
+};
+
+function blank(): FormData {
+  return { name: '', client_name: '', address: '', start_date: '', completion_date: '', isCompleted: false };
+}
+
+function fromProject(p: Project): FormData {
+  return {
+    name: p.name,
+    client_name: p.client_name,
+    address: p.address,
+    start_date: p.start_date ? p.start_date.split('T')[0] : '',
+    completion_date: p.completion_date ? p.completion_date.split('T')[0] : '',
+    isCompleted: !!p.completion_date,
+  };
 }
 
 function ProjView() {
   const toast = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const fetchProjects = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.projects.getAll();
-      setProjects(data || []);
-    } catch (err) {
-      console.error('Error fetching projects:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load projects');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreate = async (projectData: Omit<Project, 'project_id'>) => {
-    try {
-      await api.projects.create(projectData);
-      await fetchProjects();
-      setShowForm(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create project');
-      throw err;
-    }
-  };
-
-  const handleUpdate = async (projectId: number, projectData: Partial<Omit<Project, 'project_id'>>) => {
-    try {
-      await api.projects.update(projectId, projectData);
-      await fetchProjects();
-      setEditingProject(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update project');
-      throw err;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="text-center py-12">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-green-600"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 rounded border border-red-200 bg-red-50 text-red-700 text-sm">
-        {error}
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Projects</h2>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
-        >
-          <Plus size={20} />
-          New Project
-        </button>
-      </div>
-
-      {showForm && (
-        <ProjectForm
-          onClose={() => setShowForm(false)}
-          onSubmit={handleCreate}
-        />
-      )}
-
-      {editingProject && (
-        <ProjectForm
-          project={editingProject}
-          onClose={() => setEditingProject(null)}
-          onSubmit={(data) => handleUpdate(editingProject.project_id, data)}
-        />
-      )}
-
-      {projects.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <p>No projects found. Create your first project to get started.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {projects.map(p => (
-            <div
-              key={p.project_id}
-              className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition"
-            >
-              <div className="flex justify-between items-baseline gap-4 mb-2">
-                <h3 className="font-semibold text-lg">{p.name}</h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">#{p.project_id}</span>
-                  <button
-                    onClick={() => setEditingProject(p)}
-                    className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    Edit
-                  </button>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 mb-1">{p.client_name}</p>
-              <p className="text-xs text-gray-500 mb-4">{p.address}</p>
-              <div className="flex gap-6 text-sm text-gray-600">
-                <span>
-                  <strong>Start:</strong> {fmt(p.start_date)}
-                </span>
-                <span>
-                  <strong>Completion:</strong> {fmt(p.completion_date)}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-type ProjectFormProps = {
-  project?: Project;
-  onClose: () => void;
-  onSubmit: (project: Omit<Project, 'project_id'>) => Promise<void>;
-};
-
-function ProjectForm({ project, onClose, onSubmit }: ProjectFormProps) {
-  const [formData, setFormData] = useState({
-    name: project?.name || '',
-    client_name: project?.client_name || '',
-    address: project?.address || '',
-    start_date: project?.start_date ? project.start_date.split('T')[0] : '',
-    completion_date: project?.completion_date ? project.completion_date.split('T')[0] : '',
-    isCompleted: !!project?.completion_date,
-  });
+  const [view, setView] = useState<'list' | 'form'>('list');
+  const [editing, setEditing] = useState<Project | null>(null);
+  const [form, setForm] = useState<FormData>(blank());
   const [submitting, setSubmitting] = useState(false);
+
+  const load = () => {
+    setLoading(true);
+    api.projects.getAll()
+      .then(data => setProjects(data || []))
+      .catch(() => toast.error('Failed to load projects'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const openCreate = () => { setEditing(null); setForm(blank()); setView('form'); };
+  const openEdit = (p: Project) => { setEditing(p); setForm(fromProject(p)); setView('form'); };
+  const closeForm = () => { setView('list'); setEditing(null); };
+
+  const set = (k: keyof FormData, v: string | boolean) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    const payload = {
+      name: form.name,
+      client_name: form.client_name,
+      address: form.address,
+      start_date: form.start_date,
+      completion_date: form.isCompleted ? form.completion_date || null : null,
+    };
     try {
-      await onSubmit({
-        name: formData.name,
-        client_name: formData.client_name,
-        address: formData.address,
-        start_date: formData.start_date,
-        completion_date: formData.isCompleted ? formData.completion_date : null,
-      });
-    } catch (err) {
-      // Error already shown in parent
+      if (editing) {
+        await api.projects.update(editing.project_id, payload);
+        toast.success('Project updated');
+      } else {
+        await api.projects.create(payload);
+        toast.success('Project created');
+      }
+      closeForm();
+      load();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save project');
     } finally {
       setSubmitting(false);
     }
   };
 
-  return (
-    <div className="mb-6 p-6 bg-gray-50 rounded-xl border border-gray-200">
-      <h3 className="text-lg font-semibold mb-4">{project ? 'Edit Project' : 'Create New Project'}</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
+  const inputCls = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400';
+  const labelCls = 'block text-xs font-medium text-slate-600 mb-1';
+
+  if (view === 'form') return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <button onClick={closeForm} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition">
+          <ArrowLeft size={16} /> Back
+        </button>
+        <div className="h-4 w-px bg-slate-300" />
+        <h2 className="text-lg font-bold text-slate-800">{editing ? 'Edit Project' : 'New Project'}</h2>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Project Name *</label>
-          <input
-            type="text"
-            required
-            value={formData.name}
-            onChange={e => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Client Name *</label>
-          <input
-            type="text"
-            required
-            value={formData.client_name}
-            onChange={e => setFormData({ ...formData, client_name: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+          <label className={labelCls}>Project Name <span className="text-red-400">*</span></label>
+          <input required type="text" value={form.name} onChange={e => set('name', e.target.value)}
+            placeholder="e.g. Site A Construction" className={inputCls} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
-          <textarea
-            required
-            value={formData.address}
-            onChange={e => setFormData({ ...formData, address: e.target.value })}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+          <label className={labelCls}>Client Name <span className="text-red-400">*</span></label>
+          <input required type="text" value={form.client_name} onChange={e => set('client_name', e.target.value)}
+            placeholder="e.g. Acme Corp" className={inputCls} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
-          <input
-            type="date"
-            required
-            value={formData.start_date}
-            onChange={e => setFormData({ ...formData, start_date: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+          <label className={labelCls}>Address <span className="text-red-400">*</span></label>
+          <textarea required rows={3} value={form.address} onChange={e => set('address', e.target.value)}
+            placeholder="Project site address" className={`${inputCls} resize-none`} />
         </div>
-        <div className="flex items-center gap-2 mb-2">
-          <input
-            type="checkbox"
-            id="isCompleted"
-            checked={formData.isCompleted}
-            onChange={e => setFormData({ ...formData, isCompleted: e.target.checked })}
-            className="w-4 h-4"
-          />
-          <label htmlFor="isCompleted" className="text-sm font-medium text-gray-700">
-            Mark as completed
-          </label>
+        <div>
+          <label className={labelCls}>Start Date <span className="text-red-400">*</span></label>
+          <input required type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} className={inputCls} />
         </div>
-        {formData.isCompleted && (
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={form.isCompleted} onChange={e => set('isCompleted', e.target.checked)}
+            className="w-4 h-4 accent-violet-600" />
+          <span className="text-sm text-slate-700">Mark as completed</span>
+        </label>
+        {form.isCompleted && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Completion Date</label>
-            <input
-              type="date"
-              value={formData.completion_date}
-              onChange={e => setFormData({ ...formData, completion_date: e.target.value })}
-              min={formData.start_date}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+            <label className={labelCls}>Completion Date</label>
+            <input type="date" value={form.completion_date} min={form.start_date}
+              onChange={e => set('completion_date', e.target.value)} className={inputCls} />
           </div>
         )}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-          >
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={closeForm}
+            className="px-4 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition">
             Cancel
           </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
-          >
-            {submitting ? (project ? 'Updating...' : 'Creating...') : (project ? 'Update Project' : 'Create Project')}
+          <button type="submit" disabled={submitting}
+            className="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50 transition">
+            {submitting ? (editing ? 'Saving…' : 'Creating…') : (editing ? 'Save Changes' : 'Create Project')}
           </button>
         </div>
       </form>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Projects</h2>
+          <p className="text-sm text-slate-500 mt-1">{projects.length} projects</p>
+        </div>
+        <button onClick={openCreate}
+          className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg transition">
+          <Plus size={15} /> New Project
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-16 text-slate-400">Loading…</div>
+      ) : projects.length === 0 ? (
+        <div className="flex flex-col items-center py-16 text-slate-400">
+          <FolderKanban size={36} className="mb-2 opacity-30" />
+          <p>No projects yet</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+          {projects.map(p => (
+            <div key={p.project_id} className="px-4 py-3.5 hover:bg-slate-50 transition">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-800">{p.name}</span>
+                    {p.completion_date && (
+                      <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">Completed</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-slate-500 mt-0.5">{p.client_name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{p.address}</p>
+                  <div className="flex gap-4 mt-2 text-xs text-slate-500">
+                    <span>Start: {fmt(p.start_date)}</span>
+                    {p.completion_date && <span>Completed: {fmt(p.completion_date)}</span>}
+                  </div>
+                </div>
+                <button onClick={() => openEdit(p)}
+                  className="text-xs text-violet-600 hover:text-violet-800 font-medium whitespace-nowrap transition">
+                  Edit
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
