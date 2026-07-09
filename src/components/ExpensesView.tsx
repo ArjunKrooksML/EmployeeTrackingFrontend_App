@@ -3,12 +3,7 @@ import { Plus, Trash2, Paperclip, X, ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api';
 import type { ExpenseResp, ExpItem } from '../lib/api';
 import { useToast } from './Toast';
-
-const statusBadge = (s: string) => {
-  if (s === 'approved') return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">Approved</span>;
-  if (s === 'rejected') return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">Rejected</span>;
-  return <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">Pending</span>;
-};
+import { expBadge } from '../utils/helpers';
 
 const calcTotal = (items: ExpItem[]) => items.reduce((s, i) => s + Number(i.amount || 0), 0);
 
@@ -103,7 +98,7 @@ export default function ExpensesView() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          {statusBadge(e.status)}
+          {expBadge(e.status)}
           <span className="text-sm font-semibold text-slate-800">₹{calcTotal(e.items).toLocaleString('en-IN')}</span>
         </div>
       </div>
@@ -260,7 +255,7 @@ export default function ExpensesView() {
             {new Date(detailExp.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <div className="ml-2">{statusBadge(detailExp.status)}</div>
+        <div className="ml-2">{expBadge(detailExp.status)}</div>
       </div>
 
       <div className="space-y-5 max-w-lg">

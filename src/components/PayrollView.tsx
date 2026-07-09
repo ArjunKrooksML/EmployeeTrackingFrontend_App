@@ -3,8 +3,7 @@ import { api, type SalaryDeduction } from '../lib/api';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import PayslipPDF from './PayslipPDF';
 import { FileDown, Wallet } from 'lucide-react';
-
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+import { MONTHS } from '../utils/helpers';
 
 function fmt(n: number) {
   return 'Rs. ' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

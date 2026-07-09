@@ -24,6 +24,7 @@ export interface Project {
   start_date: string;
   completion_date?: string | null;
   po_prefix?: string | null;
+  has_forging?: boolean;
 }
 
 export interface POItem { id: number; size: string; quantity: number; }
@@ -66,7 +67,15 @@ function getRefreshToken(): string | null {
   return localStorage.getItem('empRefreshToken');
 }
 
+let _refreshing: Promise<string | null> | null = null;
+
 async function refreshToken(): Promise<string | null> {
+  if (_refreshing) return _refreshing;
+  _refreshing = _doRefresh().finally(() => { _refreshing = null; });
+  return _refreshing;
+}
+
+async function _doRefresh(): Promise<string | null> {
   const refresh = getRefreshToken();
   if (!refresh) return null;
 
@@ -169,7 +178,11 @@ export interface DPREntry {
   id: number;
   project_id: number;
   date: string;
-  description: string;
+  mm16: number;
+  mm20: number;
+  mm25: number;
+  mm32: number;
+  forging_qty: number;
   uploaded_by: string;
   created_at: string;
 }
@@ -416,10 +429,16 @@ export const api = {
   },
   dpr: {
     projects: (): Promise<Project[]> => apiRequest('/dpr/projects'),
-    list: (projectId: number, page = 1, pageSize = 100): Promise<PaginatedResponse<DPREntry>> =>
+    list: (projectId: number, page = 1, pageSize = 200): Promise<PaginatedResponse<DPREntry>> =>
       apiRequest(`/dpr/${projectId}?page=${page}&page_size=${pageSize}`),
-    create: (projectId: number, date: string, description: string): Promise<DPREntry> =>
-      apiRequest(`/dpr/${projectId}`, { method: 'POST', body: JSON.stringify({ date, description }) }),
+    monthly: (projectId: number, month: number, year: number): Promise<PaginatedResponse<DPREntry>> =>
+      apiRequest(`/dpr/${projectId}?month=${month}&year=${year}&page_size=50`),
+    create: (projectId: number, data: Omit<DPREntry, 'id' | 'project_id' | 'uploaded_by' | 'created_at'>): Promise<DPREntry> =>
+      apiRequest(`/dpr/${projectId}`, { method: 'POST', body: JSON.stringify(data) }),
+    update: (entryId: number, data: Omit<DPREntry, 'id' | 'project_id' | 'uploaded_by' | 'created_at'>): Promise<DPREntry> =>
+      apiRequest(`/dpr/${entryId}`, { method: 'PUT', body: JSON.stringify(data) }),
+    setForging: (projectId: number, has_forging: boolean): Promise<Project> =>
+      apiRequest(`/dpr/projects/${projectId}/forging`, { method: 'PATCH', body: JSON.stringify({ has_forging }) }),
   },
   expenses: {
     mine: (): Promise<ExpenseResp[]> => apiRequest('/expenses/mine'),
