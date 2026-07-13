@@ -6,10 +6,10 @@ import { useToast } from './Toast';
 import { generateDPRSummary } from '../utils/dprExcel';
 import { MONTHS, currentYear, YEARS } from '../utils/helpers';
 
-type FormState = { date: string; mm16: string; mm20: string; mm25: string; mm32: string; operator: string };
+type FormState = { date: string; mm16: string; mm20: string; mm25: string; mm32: string; operator: string; description: string };
 const emptyForm = (): FormState => ({
   date: new Date().toISOString().slice(0, 10),
-  mm16: '', mm20: '', mm25: '', mm32: '', operator: '',
+  mm16: '', mm20: '', mm25: '', mm32: '', operator: '', description: '',
 });
 const formFromEntry = (e: DPREntry): FormState => ({
   date: e.date,
@@ -18,6 +18,7 @@ const formFromEntry = (e: DPREntry): FormState => ({
   mm25: e.mm25 ? String(e.mm25) : '',
   mm32: e.mm32 ? String(e.mm32) : '',
   operator: e.operator_name || '',
+  description: e.description || '',
 });
 
 const entryTotal = (e: DPREntry) =>
@@ -74,6 +75,7 @@ export default function DPRView() {
       mm25: Number(form.mm25) || 0,
       mm32: Number(form.mm32) || 0,
       operator_name: form.operator,
+      description: form.description,
     };
     setSubmitting(true);
     try {
@@ -175,14 +177,21 @@ export default function DPRView() {
           </div>
 
           <div className="max-w-md space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
-              <input type="date" value={form.date} onChange={e => setF('date', e.target.value)} className={inputCls} />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
+                <input type="date" value={form.date} onChange={e => setF('date', e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Operator Name</label>
+                <input type="text" value={form.operator} onChange={e => setF('operator', e.target.value)}
+                  placeholder="Enter operator name" className={inputCls} />
+              </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Operator Name</label>
-              <input type="text" value={form.operator} onChange={e => setF('operator', e.target.value)}
-                placeholder="Enter operator name" className={inputCls} />
+              <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
+              <input type="text" value={form.description} onChange={e => setF('description', e.target.value)}
+                placeholder="Optional notes for this entry" className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-2">Quantities (kg)</label>
@@ -255,6 +264,7 @@ export default function DPRView() {
                     <th className="px-3 py-2.5 rounded-tl-lg">#</th>
                     <th className="px-3 py-2.5">Date</th>
                     <th className="px-3 py-2.5">Operator</th>
+                    <th className="px-3 py-2.5">Description</th>
                     <th className="px-3 py-2.5 text-right">16MM</th>
                     <th className="px-3 py-2.5 text-right">20MM</th>
                     <th className="px-3 py-2.5 text-right">25MM</th>
@@ -273,6 +283,7 @@ export default function DPRView() {
                           {new Date(d.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                         </td>
                         <td className="px-3 py-3 text-slate-600">{d.operator_name || '—'}</td>
+                        <td className="px-3 py-3 text-slate-500 text-xs max-w-[160px] truncate">{d.description || '—'}</td>
                         <td className="px-3 py-3 text-right text-slate-600">{d.mm16 || '—'}</td>
                         <td className="px-3 py-3 text-right text-slate-600">{d.mm20 || '—'}</td>
                         <td className="px-3 py-3 text-right text-slate-600">{d.mm25 || '—'}</td>

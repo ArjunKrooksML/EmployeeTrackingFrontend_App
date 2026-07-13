@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { fmtLabel } from '../utils/format';
-import { X, Paperclip } from 'lucide-react';
+import { X, Paperclip, LayoutGrid, List } from 'lucide-react';
 import { api, type Task } from '../lib/api';
 import { useToast } from './Toast';
 
@@ -31,6 +31,7 @@ function TaskView({ user }: Props) {
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [atts, setAtts] = useState<{ id: number; file_name: string; url: string }[]>([]);
+  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
 
   useEffect(() => {
     fetchTasks();
@@ -90,15 +91,66 @@ function TaskView({ user }: Props) {
     );
   }
 
+  const BOARD_COLS = [
+    { id: 'todo',        label: 'To Do',       dot: 'bg-slate-400',   ring: 'border-slate-200' },
+    { id: 'in_progress', label: 'In Progress',  dot: 'bg-blue-500',    ring: 'border-blue-100'  },
+    { id: 'blocked',     label: 'Blocked',      dot: 'bg-red-500',     ring: 'border-red-100'   },
+    { id: 'completed',   label: 'Completed',    dot: 'bg-emerald-500', ring: 'border-emerald-100' },
+  ];
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">My Tasks</h2>
+        {tasks.length > 0 && (
+          <div className="flex items-center gap-1 bg-gray-100 border border-gray-200 rounded-lg p-0.5">
+            <button onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition
+                ${viewMode === 'list' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
+              <List size={13} /> List
+            </button>
+            <button onClick={() => setViewMode('board')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition
+                ${viewMode === 'board' ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'}`}>
+              <LayoutGrid size={13} /> Board
+            </button>
+          </div>
+        )}
       </div>
 
       {tasks.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No tasks assigned to you yet.</p>
+        </div>
+      ) : viewMode === 'board' ? (
+        <div className="flex gap-3 overflow-x-auto pb-4">
+          {BOARD_COLS.map(col => {
+            const colTasks = tasks.filter(t => t.status === col.id);
+            return (
+              <div key={col.id} className="flex-1 min-w-[200px]">
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <span className={`h-2 w-2 rounded-full ${col.dot}`} />
+                  <span className="text-sm font-semibold text-slate-700">{col.label}</span>
+                  <span className="ml-auto text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{colTasks.length}</span>
+                </div>
+                <div className={`min-h-[80px] rounded-2xl p-2 space-y-2 bg-slate-100/60 border-2 ${col.ring}`}>
+                  {colTasks.length === 0 ? (
+                    <div className="h-12 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-xs text-slate-400">Empty</div>
+                  ) : colTasks.map(t => (
+                    <button key={t.task_id} type="button" onClick={() => onPick(t.task_id)}
+                      className="w-full text-left bg-white rounded-xl p-3 shadow-sm border border-white/60 hover:-translate-y-0.5 hover:shadow-md transition-all">
+                      <p className="text-sm font-semibold text-slate-800 leading-tight mb-1.5">{t.task_name}</p>
+                      {t.description && <p className="text-xs text-slate-400 mb-1.5 line-clamp-2">{t.description}</p>}
+                      <div className="flex flex-wrap gap-1">
+                        <span className={`pill pill-prio-${t.priority} text-[11px]`}>{fmtLabel(t.priority)}</span>
+                        {t.deadline && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Due {fmt(t.deadline)}</span>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <>

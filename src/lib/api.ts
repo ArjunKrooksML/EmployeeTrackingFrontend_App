@@ -182,19 +182,21 @@ export interface DPREntry {
   mm25: number;
   mm32: number;
   operator_name: string;
+  description?: string;
   uploaded_by: string;
   created_at: string;
 }
 
 export interface PaginatedResponse<T> { items: T[]; total: number; page: number; page_size: number; pages: number; }
 
-export interface ExpItem { description: string; amount: number; }
+export interface ExpItem { description: string; amount: number; date?: string; }
 
 export interface ExpenseResp {
   id: number;
   employee_id: number;
   title: string;
   date: string;
+  date_to?: string | null;
   items: ExpItem[];
   attachment_url?: string;
   attachment_name?: string;

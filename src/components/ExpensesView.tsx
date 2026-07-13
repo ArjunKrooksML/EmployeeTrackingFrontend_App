@@ -7,7 +7,7 @@ import { expBadge } from '../utils/helpers';
 
 const calcTotal = (items: ExpItem[]) => items.reduce((s, i) => s + Number(i.amount || 0), 0);
 
-type FormItem = { description: string; amount: string };
+type FormItem = { description: string; amount: string; date: string };
 type StatusTab = 'all' | 'pending' | 'approved' | 'rejected';
 const STATUS_TABS: { key: StatusTab; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -28,7 +28,9 @@ export default function ExpensesView() {
 
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [items, setItems] = useState<FormItem[]>([{ description: '', amount: '' }]);
+  const [dateTo, setDateTo] = useState('');
+  const [multiDay, setMultiDay] = useState(false);
+  const [items, setItems] = useState<FormItem[]>([{ description: '', amount: '', date: new Date().toISOString().slice(0, 10) }]);
   const [file, setFile] = useState<File | null>(null);
 
   const load = () => {
@@ -41,21 +43,31 @@ export default function ExpensesView() {
 
   useEffect(() => { load(); }, []);
 
+  const today = new Date().toISOString().slice(0, 10);
   const resetForm = () => {
     setTitle('');
-    setDate(new Date().toISOString().slice(0, 10));
-    setItems([{ description: '', amount: '' }]);
+    setDate(today);
+    setDateTo('');
+    setMultiDay(false);
+    setItems([{ description: '', amount: '', date: today }]);
     setFile(null);
     if (fileRef.current) fileRef.current.value = '';
   };
 
-  const addItem = () => setItems(prev => [...prev, { description: '', amount: '' }]);
+  const addItem = () => setItems(prev => [...prev, { description: '', amount: '', date: date }]);
   const removeItem = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i));
   const updateItem = (i: number, field: keyof FormItem, val: string) =>
     setItems(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: val } : item));
 
+  const toggleMultiDay = (on: boolean) => {
+    setMultiDay(on);
+    if (!on) setDateTo('');
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) return toast.error('Title is required');
+    if (multiDay && !dateTo) return toast.error('Please set an end date');
+    if (multiDay && dateTo < date) return toast.error('End date must be after start date');
     if (items.some(it => !it.description.trim() || !it.amount)) return toast.error('Fill all expense items');
     if (!file) return toast.error('Please attach a supporting document');
     setSubmitting(true);
@@ -63,7 +75,12 @@ export default function ExpensesView() {
       const form = new FormData();
       form.append('title', title.trim());
       form.append('date', date);
-      form.append('items', JSON.stringify(items.map(it => ({ description: it.description.trim(), amount: parseFloat(it.amount) }))));
+      if (multiDay && dateTo) form.append('date_to', dateTo);
+      form.append('items', JSON.stringify(items.map(it => ({
+        description: it.description.trim(),
+        amount: parseFloat(it.amount),
+        ...(multiDay ? { date: it.date } : {}),
+      }))));
       if (file) form.append('file', file);
       await api.expenses.create(form);
       toast.success('Expense filed successfully');
@@ -95,6 +112,7 @@ export default function ExpensesView() {
           <p className="font-medium text-slate-800 truncate">{e.title}</p>
           <p className="text-xs text-slate-500 mt-0.5">
             {new Date(e.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            {e.date_to && ` → ${new Date(e.date_to).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -131,7 +149,7 @@ export default function ExpensesView() {
       <div className="space-y-5 max-w-lg">
 
         {/* Title + Date row */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className={`grid gap-3 items-end ${multiDay ? 'grid-cols-[1fr_1fr_1fr_auto]' : 'grid-cols-[1fr_1fr_auto]'}`}>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Title <span className="text-red-400">*</span></label>
             <input
@@ -143,14 +161,22 @@ export default function ExpensesView() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Date <span className="text-red-400">*</span></label>
-            <input
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
-            />
+            <label className="block text-xs font-medium text-slate-600 mb-1">{multiDay ? 'From' : 'Date'} <span className="text-red-400">*</span></label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
           </div>
+          {multiDay && (
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">To <span className="text-red-400">*</span></label>
+              <input type="date" value={dateTo} min={date} onChange={e => setDateTo(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400" />
+            </div>
+          )}
+          <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-500 select-none pb-2.5">
+            <input type="checkbox" checked={multiDay} onChange={e => toggleMultiDay(e.target.checked)}
+              className="w-3.5 h-3.5 accent-violet-600 cursor-pointer" />
+            Multiple days
+          </label>
         </div>
 
         {/* Expense items */}
@@ -158,13 +184,24 @@ export default function ExpensesView() {
           <label className="block text-xs font-medium text-slate-600 mb-2">Expense Items <span className="text-red-400">*</span></label>
           <div className="border border-slate-200 rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-[1fr_110px_36px] gap-0 bg-slate-50 border-b border-slate-200 px-3 py-2 text-xs font-medium text-slate-500">
+            <div className={`grid ${multiDay ? 'grid-cols-[140px_1fr_110px_36px]' : 'grid-cols-[1fr_110px_36px]'} gap-0 bg-slate-50 border-b border-slate-200 px-3 py-2 text-xs font-medium text-slate-500`}>
+              {multiDay && <span>Date</span>}
               <span>Description</span><span>Amount (₹)</span><span />
             </div>
             {/* Rows */}
             <div className="divide-y divide-slate-100">
               {items.map((item, i) => (
-                <div key={i} className="grid grid-cols-[1fr_110px_36px] gap-0 items-center">
+                <div key={i} className={`grid ${multiDay ? 'grid-cols-[140px_1fr_110px_36px]' : 'grid-cols-[1fr_110px_36px]'} gap-0 items-center`}>
+                  {multiDay && (
+                    <input
+                      type="date"
+                      value={item.date}
+                      min={date}
+                      max={dateTo || undefined}
+                      onChange={e => updateItem(i, 'date', e.target.value)}
+                      className="px-2 py-2.5 text-sm border-0 border-r border-slate-100 focus:outline-none focus:bg-violet-50/50 w-full"
+                    />
+                  )}
                   <input
                     type="text"
                     value={item.description}
@@ -253,6 +290,7 @@ export default function ExpensesView() {
           <h2 className="text-lg font-bold text-slate-800">{detailExp.title}</h2>
           <p className="text-xs text-slate-500">
             {new Date(detailExp.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+            {detailExp.date_to && ` → ${new Date(detailExp.date_to).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}`}
           </p>
         </div>
         <div className="ml-2">{expBadge(detailExp.status)}</div>
@@ -264,6 +302,7 @@ export default function ExpensesView() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-xs text-slate-500">
+                {detailExp.date_to && <th className="px-3 py-1.5 text-left font-medium">Date</th>}
                 <th className="px-3 py-1.5 text-left rounded-tl font-medium">Description</th>
                 <th className="px-3 py-1.5 text-right rounded-tr font-medium">Amount</th>
               </tr>
@@ -271,6 +310,11 @@ export default function ExpensesView() {
             <tbody className="divide-y divide-slate-100">
               {detailExp.items.map((item, i) => (
                 <tr key={i}>
+                  {detailExp.date_to && (
+                    <td className="px-3 py-2 text-slate-500 text-xs whitespace-nowrap">
+                      {item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
+                    </td>
+                  )}
                   <td className="px-3 py-2 text-slate-700">{item.description}</td>
                   <td className="px-3 py-2 text-right font-medium">₹{Number(item.amount).toLocaleString('en-IN')}</td>
                 </tr>
