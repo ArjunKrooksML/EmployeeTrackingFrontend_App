@@ -51,7 +51,7 @@ export default function ExpensesView() {
     setMultiDay(false);
     setItems([{ description: '', amount: '', date: today }]);
     setFiles([]);
-    if (fileRef.current) fileRef.current.value = '';
+    if (fileRef.current) fileRef.current.value = ''; // clear native input too
   };
 
   const addItem = () => setItems(prev => [...prev, { description: '', amount: '', date: date }]);
@@ -250,23 +250,30 @@ export default function ExpensesView() {
             <label className="text-xs font-medium text-slate-600">Attachments <span className="text-red-400">*</span></label>
             <span className="text-xs text-slate-400">Max 25 MB total</span>
           </div>
-          <input ref={fileRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          <input
+            ref={fileRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+            style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
             onChange={e => {
               const picked = Array.from(e.target.files || []);
+              if (picked.length === 0) return;
               setFiles(prev => {
                 const existing = new Set(prev.map(f => f.name + f.size));
                 return [...prev, ...picked.filter(f => !existing.has(f.name + f.size))];
               });
-              if (fileRef.current) fileRef.current.value = '';
+              e.target.value = '';
             }}
-            className="hidden" id="exp-file" />
+          />
           {files.length === 0 ? (
-            <label htmlFor="exp-file"
-              className="flex flex-col items-center justify-center gap-1.5 w-full py-5 border-2 border-dashed border-slate-300 hover:border-violet-400 hover:bg-slate-50 rounded-xl cursor-pointer transition">
+            <div
+              onClick={() => fileRef.current?.click()}
+              className="flex flex-col items-center justify-center gap-1.5 w-full py-5 border-2 border-dashed border-slate-300 hover:border-violet-400 hover:bg-slate-50 rounded-xl cursor-pointer transition select-none">
               <Paperclip size={18} className="text-slate-400" />
               <span className="text-sm font-medium text-slate-600">Click to upload receipts or documents</span>
-              <span className="text-xs text-slate-400">Images, PDF, Word, Excel · multiple allowed</span>
-            </label>
+              <span className="text-xs text-slate-400">Images, PDF, Word, Excel · select multiple at once or add one by one</span>
+            </div>
           ) : (
             <div className="border border-slate-200 rounded-xl overflow-hidden">
               {files.map((f, i) => (
@@ -281,9 +288,10 @@ export default function ExpensesView() {
                 </div>
               ))}
               <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-t border-slate-200">
-                <label htmlFor="exp-file" className="text-xs text-violet-600 hover:text-violet-800 font-medium cursor-pointer transition">
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="text-xs text-violet-600 hover:text-violet-800 font-medium transition">
                   + Add more
-                </label>
+                </button>
                 <span className="text-xs text-slate-400">
                   {(files.reduce((s, f) => s + f.size, 0) / 1024 / 1024).toFixed(1)} MB / 25 MB
                 </span>
