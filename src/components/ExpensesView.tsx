@@ -31,7 +31,7 @@ export default function ExpensesView() {
   const [dateTo, setDateTo] = useState('');
   const [multiDay, setMultiDay] = useState(false);
   const [items, setItems] = useState<FormItem[]>([{ description: '', amount: '', date: new Date().toISOString().slice(0, 10) }]);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
 
   const load = () => {
     setLoading(true);
@@ -50,7 +50,7 @@ export default function ExpensesView() {
     setDateTo('');
     setMultiDay(false);
     setItems([{ description: '', amount: '', date: today }]);
-    setFile(null);
+    setFiles([]);
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -69,7 +69,9 @@ export default function ExpensesView() {
     if (multiDay && !dateTo) return toast.error('Please set an end date');
     if (multiDay && dateTo < date) return toast.error('End date must be after start date');
     if (items.some(it => !it.description.trim() || !it.amount)) return toast.error('Fill all expense items');
-    if (!file) return toast.error('Please attach a supporting document');
+    if (files.length === 0) return toast.error('Please attach at least one document');
+    const totalBytes = files.reduce((s, f) => s + f.size, 0);
+    if (totalBytes > 25 * 1024 * 1024) return toast.error('Total attachments exceed 25 MB');
     setSubmitting(true);
     try {
       const form = new FormData();
@@ -81,7 +83,7 @@ export default function ExpensesView() {
         amount: parseFloat(it.amount),
         ...(multiDay ? { date: it.date } : {}),
       }))));
-      if (file) form.append('file', file);
+      files.forEach(f => form.append('files', f));
       await api.expenses.create(form);
       toast.success('Expense filed successfully');
       resetForm();
@@ -120,9 +122,9 @@ export default function ExpensesView() {
           <span className="text-sm font-semibold text-slate-800">₹{calcTotal(e.items).toLocaleString('en-IN')}</span>
         </div>
       </div>
-      {e.attachment_name && (
+      {(e.attachments?.length ?? 0) > 0 && (
         <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
-          <Paperclip size={11} /> {e.attachment_name}
+          <Paperclip size={11} /> {e.attachments!.length} attachment{e.attachments!.length > 1 ? 's' : ''}
         </div>
       )}
       {e.remarks && (
@@ -242,25 +244,51 @@ export default function ExpensesView() {
           </div>
         </div>
 
-        {/* Attachment — mandatory */}
+        {/* Attachments */}
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-2">Attachment <span className="text-red-400">*</span></label>
-          <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
-            onChange={e => setFile(e.target.files?.[0] || null)} className="hidden" id="exp-file" />
-          <label htmlFor="exp-file"
-            className={`flex flex-col items-center justify-center gap-1.5 w-full py-5 border-2 border-dashed rounded-xl cursor-pointer transition
-              ${file ? 'border-violet-400 bg-violet-50' : 'border-slate-300 hover:border-violet-400 hover:bg-slate-50'}`}>
-            <Paperclip size={18} className={file ? 'text-violet-500' : 'text-slate-400'} />
-            <span className={`text-sm font-medium ${file ? 'text-violet-700' : 'text-slate-600'}`}>
-              {file ? file.name : 'Click to upload receipt or document'}
-            </span>
-            <span className="text-xs text-slate-400">Images, PDF, Word, Excel</span>
-          </label>
-          {file && (
-            <button type="button" onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ''; }}
-              className="mt-1.5 text-xs text-slate-400 hover:text-red-500 transition flex items-center gap-1">
-              <X size={12} /> Remove
-            </button>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-slate-600">Attachments <span className="text-red-400">*</span></label>
+            <span className="text-xs text-slate-400">Max 25 MB total</span>
+          </div>
+          <input ref={fileRef} type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+            onChange={e => {
+              const picked = Array.from(e.target.files || []);
+              setFiles(prev => {
+                const existing = new Set(prev.map(f => f.name + f.size));
+                return [...prev, ...picked.filter(f => !existing.has(f.name + f.size))];
+              });
+              if (fileRef.current) fileRef.current.value = '';
+            }}
+            className="hidden" id="exp-file" />
+          {files.length === 0 ? (
+            <label htmlFor="exp-file"
+              className="flex flex-col items-center justify-center gap-1.5 w-full py-5 border-2 border-dashed border-slate-300 hover:border-violet-400 hover:bg-slate-50 rounded-xl cursor-pointer transition">
+              <Paperclip size={18} className="text-slate-400" />
+              <span className="text-sm font-medium text-slate-600">Click to upload receipts or documents</span>
+              <span className="text-xs text-slate-400">Images, PDF, Word, Excel · multiple allowed</span>
+            </label>
+          ) : (
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              {files.map((f, i) => (
+                <div key={i} className="flex items-center gap-2 px-3 py-2 border-b border-slate-100 last:border-b-0 hover:bg-slate-50">
+                  <Paperclip size={13} className="text-violet-400 shrink-0" />
+                  <span className="flex-1 text-sm text-slate-700 truncate">{f.name}</span>
+                  <span className="text-xs text-slate-400 shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                  <button type="button" onClick={() => setFiles(prev => prev.filter((_, idx) => idx !== i))}
+                    className="text-slate-300 hover:text-red-400 transition shrink-0">
+                    <X size={13} />
+                  </button>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-t border-slate-200">
+                <label htmlFor="exp-file" className="text-xs text-violet-600 hover:text-violet-800 font-medium cursor-pointer transition">
+                  + Add more
+                </label>
+                <span className="text-xs text-slate-400">
+                  {(files.reduce((s, f) => s + f.size, 0) / 1024 / 1024).toFixed(1)} MB / 25 MB
+                </span>
+              </div>
+            </div>
           )}
         </div>
 
@@ -327,11 +355,15 @@ export default function ExpensesView() {
           </table>
         </div>
 
-        {detailExp.attachment_url && (
-          <a href={detailExp.attachment_url} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-violet-600 hover:text-violet-800 transition">
-            <Paperclip size={14} /> {detailExp.attachment_name || 'View Attachment'}
-          </a>
+        {(detailExp.attachments?.length ?? 0) > 0 && (
+          <div className="space-y-1">
+            {detailExp.attachments!.map((a, i) => (
+              <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm text-violet-600 hover:text-violet-800 transition truncate">
+                <Paperclip size={14} className="shrink-0" /> {a.name}
+              </a>
+            ))}
+          </div>
         )}
 
         {detailExp.remarks && (
