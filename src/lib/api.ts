@@ -369,8 +369,9 @@ export const api = {
         body: JSON.stringify({ employee_id: employeeId, lat: lat ?? null, lng: lng ?? null }),
       });
     },
-    getMyAttendance: async (employeeId: number): Promise<Attendance[]> => {
-      return apiRequest<Attendance[]>(`/attendance/employee/${employeeId}`);
+    getMyAttendance: async (employeeId: number, year?: number): Promise<Attendance[]> => {
+      const q = year ? `?year=${year}` : '';
+      return apiRequest<Attendance[]>(`/attendance/employee/${employeeId}${q}`);
     },
     getAll: async (): Promise<(Attendance & { employee_name: string })[]> => {
       const res = await apiRequest<{ items: (Attendance & { employee_name: string })[] }>('/attendance/all?page=1&page_size=10000');

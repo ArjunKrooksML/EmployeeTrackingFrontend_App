@@ -1,27 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, FolderKanban, ListChecks, UserCircle, X, LayoutGrid, Home, Wallet, Menu, Package, FileText, Receipt } from 'lucide-react';
 import { ToastProvider } from './components/Toast';
 import { ConfirmProvider } from './components/ConfirmDialog';
 import NotificationBell from './components/NotificationBell';
-import Dashboard from './components/Dashboard';
-import AttView from './components/AttView';
-import TaskView from './components/TaskView';
-import ProjView from './components/ProjView';
-import LeaveView from './components/LeaveView';
-import MeView from './components/MeView';
-import PayrollView from './components/PayrollView';
-import OrdersView from './components/OrdersView';
 import Login from './components/Login';
 import { api } from './lib/api';
-import ChangePasswordModal from './components/ChangePasswordModal';
-import ChatBot from './components/ChatBot';
-import DPRView from './components/DPRView';
-import ExpensesView from './components/ExpensesView';
-import EmpMgmt from './components/manage/EmpMgmt';
-import ProjMgmt from './components/manage/ProjMgmt';
-import TaskMgmt from './components/manage/TaskMgmt';
-import AllAtt from './components/manage/AllAtt';
+
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const AttView = lazy(() => import('./components/AttView'));
+const TaskView = lazy(() => import('./components/TaskView'));
+const ProjView = lazy(() => import('./components/ProjView'));
+const LeaveView = lazy(() => import('./components/LeaveView'));
+const MeView = lazy(() => import('./components/MeView'));
+const PayrollView = lazy(() => import('./components/PayrollView'));
+const OrdersView = lazy(() => import('./components/OrdersView'));
+const ChangePasswordModal = lazy(() => import('./components/ChangePasswordModal'));
+const ChatBot = lazy(() => import('./components/ChatBot'));
+const DPRView = lazy(() => import('./components/DPRView'));
+const ExpensesView = lazy(() => import('./components/ExpensesView'));
+const EmpMgmt = lazy(() => import('./components/manage/EmpMgmt'));
+const ProjMgmt = lazy(() => import('./components/manage/ProjMgmt'));
+const TaskMgmt = lazy(() => import('./components/manage/TaskMgmt'));
+const AllAtt = lazy(() => import('./components/manage/AllAtt'));
 
 type User = {
   name: string;
@@ -40,9 +41,7 @@ type User = {
   others?: number;
 };
 
-// Base tabs always visible
 type BaseTab = 'dashboard' | 'att' | 'tasks' | 'proj' | 'leaves' | 'payroll' | 'me' | 'orders' | 'dpr' | 'expenses';
-// Extra tabs for HR/GM
 type ManageTab = 'mg_emps' | 'mg_projs' | 'mg_tasks' | 'mg_att';
 type Tab = BaseTab | ManageTab;
 
@@ -58,6 +57,12 @@ function roleLabel(r?: string) {
   const map: Record<string, string> = { employee: 'Employee', senior: 'Senior', hr: 'HR', gm: 'GM' };
   return map[r || 'employee'] || r || 'Employee';
 }
+
+const TabSpinner = () => (
+  <div className="flex items-center justify-center h-48">
+    <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-violet-500" />
+  </div>
+);
 
 function App() {
   const [user, setUser] = useState<User | null>(() => {
@@ -145,7 +150,6 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
     { key: 'expenses', icon: <Receipt size={17} />, label: 'Expenses' },
   ];
 
-  // Build manage sub-tabs for the inline manage section
   const manageSubs: { key: ManageTab; label: string; show: boolean }[] = [
     { key: 'mg_emps', label: 'Employees', show: isHR },
     { key: 'mg_projs', label: 'Projects', show: isHR },
@@ -153,17 +157,14 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
     { key: 'mg_att', label: 'All Attendance', show: isGM },
   ];
 
-  // Tab is "manage" section if it's a manage key
   const isManage = (tab as string).startsWith('mg_');
 
   return (
     <div className="min-h-screen bg-[#f5f3ff] flex flex-col relative">
-      {/* Liquid glass background orbs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-violet-400/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 -left-40 w-96 h-96 bg-indigo-400/8 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 right-1/3 w-[450px] h-[450px] bg-purple-400/7 rounded-full blur-3xl" />
-      </div>
+      <div
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{ background: 'radial-gradient(ellipse 55% 45% at 95% -5%, rgba(167,139,250,0.14) 0%, transparent 100%), radial-gradient(ellipse 50% 40% at -5% 55%, rgba(99,102,241,0.1) 0%, transparent 100%), radial-gradient(ellipse 50% 40% at 65% 105%, rgba(192,132,252,0.08) 0%, transparent 100%)' }}
+      />
       {/* Top nav */}
       <nav className="bg-[#130c24] text-white border-b border-white/5 relative z-20">
         <div className="px-4 sm:px-8 flex justify-between items-center h-14">
@@ -177,7 +178,6 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
             </button>
           </div>
           <div className="flex items-center gap-2">
-            {/* Role badge */}
             <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium">{roleLabel(role)}</span>
             <NotificationBell empId={user.employee_id} />
             <div className="relative">
@@ -224,7 +224,6 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
             </div>
           ))}
 
-          {/* Manage section for HR/GM/Senior */}
           {canManage && (
             <>
               <div className="pt-3 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Manage</div>
@@ -251,43 +250,43 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto px-3 sm:px-8 py-6">
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={`${tab}-${tabKey}`}
-              className="relative z-10 max-w-4xl mx-auto bg-white/80 backdrop-blur-md rounded-2xl shadow-lg shadow-black/5 border border-white/70 p-4 sm:p-6"
+              className="relative z-10 max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
             >
-              {tab === 'dashboard' && <Dashboard user={user} />}
-              {tab === 'att' && <AttView user={user} />}
-              {tab === 'tasks' && <TaskView user={user} />}
-              {tab === 'proj' && <ProjView />}
-              {tab === 'leaves' && <LeaveView user={user} />}
-              {tab === 'payroll' && <PayrollView />}
-              {tab === 'me' && <MeView user={user} />}
-              {tab === 'orders' && <OrdersView />}
-              {tab === 'dpr' && <DPRView />}
-              {tab === 'expenses' && <ExpensesView />}
-              {/* Manage tabs */}
-              {isManage && canManage && (
-                <div>
-                  {/* Sub-tab bar */}
-                  <div className="flex gap-2 mb-5 border-b border-slate-200 pb-2 overflow-x-auto">
-                    {manageSubs.filter(s => s.show).map(s => (
-                      <button key={s.key} onClick={() => { setManageTab(s.key); navigate(s.key); }}
-                        className={`px-3 py-1.5 text-sm rounded-lg font-medium whitespace-nowrap transition ${manageTab === s.key ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
-                        {s.label}
-                      </button>
-                    ))}
+              <Suspense fallback={<TabSpinner />}>
+                {tab === 'dashboard' && <Dashboard user={user} />}
+                {tab === 'att' && <AttView user={user} />}
+                {tab === 'tasks' && <TaskView user={user} />}
+                {tab === 'proj' && <ProjView />}
+                {tab === 'leaves' && <LeaveView user={user} />}
+                {tab === 'payroll' && <PayrollView />}
+                {tab === 'me' && <MeView user={user} />}
+                {tab === 'orders' && <OrdersView />}
+                {tab === 'dpr' && <DPRView />}
+                {tab === 'expenses' && <ExpensesView />}
+                {isManage && canManage && (
+                  <div>
+                    <div className="flex gap-2 mb-5 border-b border-slate-200 pb-2 overflow-x-auto">
+                      {manageSubs.filter(s => s.show).map(s => (
+                        <button key={s.key} onClick={() => { setManageTab(s.key); navigate(s.key); }}
+                          className={`px-3 py-1.5 text-sm rounded-lg font-medium whitespace-nowrap transition ${manageTab === s.key ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                    {manageTab === 'mg_emps' && isHR && <EmpMgmt />}
+                    {manageTab === 'mg_projs' && isHR && <ProjMgmt />}
+                    {manageTab === 'mg_tasks' && (isGM || isSenior) && <TaskMgmt />}
+                    {manageTab === 'mg_att' && isGM && <AllAtt />}
                   </div>
-                  {manageTab === 'mg_emps' && isHR && <EmpMgmt />}
-                  {manageTab === 'mg_projs' && isHR && <ProjMgmt />}
-                  {manageTab === 'mg_tasks' && (isGM || isSenior) && <TaskMgmt />}
-                  {manageTab === 'mg_att' && isGM && <AllAtt />}
-                </div>
-              )}
+                )}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </main>
@@ -298,7 +297,7 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
         {showDrawer && (
           <div className="fixed inset-0 z-50 md:hidden flex">
             <motion.div
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/50"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowDrawer(false)}
             />
@@ -341,7 +340,7 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
       <AnimatePresence>
         {showProfile && user && (
           <motion.div
-            className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4"
+            className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 px-4"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.div
@@ -371,8 +370,10 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
         )}
       </AnimatePresence>
 
-      {showChangePass && <ChangePasswordModal onClose={() => setShowChangePass(false)} />}
-      <ChatBot />
+      <Suspense fallback={null}>
+        {showChangePass && <ChangePasswordModal onClose={() => setShowChangePass(false)} />}
+        <ChatBot />
+      </Suspense>
     </div>
   );
 }

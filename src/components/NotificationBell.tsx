@@ -53,10 +53,8 @@ export default function NotificationBell({ empId }: Props) {
   }
 
   useEffect(() => {
-    fetchNotifs();
-    const iv = setInterval(fetchNotifs, 60000);
-    return () => clearInterval(iv);
-  }, [empId]);
+    if (open) fetchNotifs();
+  }, [open, empId]);
 
   useEffect(() => {
     function handle(e: MouseEvent) {
