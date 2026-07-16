@@ -73,9 +73,9 @@ export default function Dashboard({ user }: DashboardProps) {
     (async () => {
       try {
         const results = await Promise.allSettled([
-          api.tasks?.getEmployeeTasks?.(user.employee_id) || Promise.resolve([]),
-          api.attendance?.getMyAttendance?.(user.employee_id, new Date().getFullYear()) || Promise.resolve([]),
-          api.leaves?.getByEmployee?.(user.employee_id) || Promise.resolve([]),
+          api.tasks?.getMyTasks?.() || Promise.resolve([]),
+          api.attendance?.getMyAttendance?.(new Date().getFullYear()) || Promise.resolve([]),
+          api.leaves?.getMy?.() || Promise.resolve([]),
         ]);
         setTasks(results[0].status === 'fulfilled' ? (results[0].value || []) : []);
         setAttendance(results[1].status === 'fulfilled' ? (results[1].value || []) : []);

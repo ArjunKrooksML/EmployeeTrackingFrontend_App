@@ -44,15 +44,15 @@ export default function AttView({ user }: { user: User }) {
   const [locMsg, setLocMsg] = useState('');
 
   useEffect(() => {
-    if (user.employee_id) load(user.employee_id);
+    load();
   }, [user.employee_id]);
 
-  async function load(id: number) {
+  async function load() {
     setLoading(true);
     try {
       const [rows, leaves] = await Promise.all([
-        api.attendance.getMyAttendance(id),
-        api.leaves.getByEmployee(id),
+        api.attendance.getMyAttendance(),
+        api.leaves.getMy(),
       ]);
       const map: AttMap = {};
       rows.forEach(r => { map[String(r.date).split('T')[0]] = r; });
@@ -79,11 +79,11 @@ export default function AttView({ user }: { user: User }) {
       } else {
         setLocMsg('⚠ Location unavailable — check-in recorded without GPS');
       }
-      const res = await api.attendance.checkIn(user.employee_id, pos?.lat, pos?.lng);
+      const res = await api.attendance.checkIn(pos?.lat, pos?.lng);
       const k = String(res.date).split('T')[0];
       setData(prev => ({ ...prev, [k]: res }));
       setSel(k);
-      await load(user.employee_id);
+      await load();
     } catch (e: any) {
       toast.error(e?.message || 'Check-in failed. Try again.');
     } finally {

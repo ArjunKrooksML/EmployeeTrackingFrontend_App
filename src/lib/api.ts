@@ -256,7 +256,6 @@ export interface SalaryDeduction {
 }
 
 export type LeaveCreate = {
-  employee_id: number;
   leave_type: string;
   leave_date: string;
   day_type: string;
@@ -320,11 +319,11 @@ export const api = {
     },
   },
   tasks: {
-    getEmployeeTasks: async (employeeId: number): Promise<Task[]> => {
-      return apiRequest<Task[]>(`/tasks/employee/${employeeId}`);
+    getMyTasks: async (): Promise<Task[]> => {
+      return apiRequest<Task[]>('/tasks/my');
     },
-    markComplete: async (taskId: number, employeeId: number, isCompleted: boolean = true): Promise<Task> => {
-      return apiRequest<Task>(`/tasks/${taskId}/complete?employee_id=${employeeId}&is_completed=${isCompleted}`, {
+    markComplete: async (taskId: number, isCompleted: boolean = true): Promise<Task> => {
+      return apiRequest<Task>(`/tasks/${taskId}/complete?is_completed=${isCompleted}`, {
         method: 'PUT',
       });
     },
@@ -363,15 +362,15 @@ export const api = {
     },
   },
   attendance: {
-    checkIn: async (employeeId: number, lat?: number, lng?: number): Promise<Attendance> => {
+    checkIn: async (lat?: number, lng?: number): Promise<Attendance> => {
       return apiRequest<Attendance>('/attendance/checkin', {
         method: 'POST',
-        body: JSON.stringify({ employee_id: employeeId, lat: lat ?? null, lng: lng ?? null }),
+        body: JSON.stringify({ lat: lat ?? null, lng: lng ?? null }),
       });
     },
-    getMyAttendance: async (employeeId: number, year?: number): Promise<Attendance[]> => {
+    getMyAttendance: async (year?: number): Promise<Attendance[]> => {
       const q = year ? `?year=${year}` : '';
-      return apiRequest<Attendance[]>(`/attendance/employee/${employeeId}${q}`);
+      return apiRequest<Attendance[]>(`/attendance/my${q}`);
     },
     getAll: async (): Promise<(Attendance & { employee_name: string })[]> => {
       const res = await apiRequest<{ items: (Attendance & { employee_name: string })[] }>('/attendance/all?page=1&page_size=10000');
@@ -450,10 +449,10 @@ export const api = {
   leaves: {
     request: async (data: LeaveCreate): Promise<Leave> =>
       apiRequest<Leave>('/leaves/request', { method: 'POST', body: JSON.stringify(data) }),
-    getByEmployee: async (empId: number): Promise<Leave[]> =>
-      apiRequest<Leave[]>(`/leaves/employee/${empId}`),
-    cancel: async (leaveId: number, empId: number): Promise<{ message: string }> =>
-      apiRequest<{ message: string }>(`/leaves/${leaveId}?employee_id=${empId}`, { method: 'DELETE' }),
+    getMy: async (): Promise<Leave[]> =>
+      apiRequest<Leave[]>('/leaves/my'),
+    cancel: async (leaveId: number): Promise<{ message: string }> =>
+      apiRequest<{ message: string }>(`/leaves/${leaveId}`, { method: 'DELETE' }),
   }
 };
 

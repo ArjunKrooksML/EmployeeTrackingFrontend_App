@@ -35,7 +35,7 @@ export default function LeaveView({ user }: { user: User }) {
     if (!user?.employee_id) return;
     setLoading(true);
     try {
-      const data = await api.leaves.getByEmployee(user.employee_id);
+      const data = await api.leaves.getMy();
       setLeaves(data || []);
     } catch (error) {
       console.error('Error fetching leaves:', error);
@@ -50,7 +50,6 @@ export default function LeaveView({ user }: { user: User }) {
     setSubmitting(true);
     try {
       const payload: LeaveCreate = {
-        employee_id: user.employee_id,
         leave_type: formData.leave_type,
         leave_date: formData.leave_date,
         day_type: formData.day_type,
@@ -76,7 +75,7 @@ export default function LeaveView({ user }: { user: User }) {
     if (!ok) return;
     setCancelling(leave.id);
     try {
-      await api.leaves.cancel(leave.id, user.employee_id);
+      await api.leaves.cancel(leave.id);
       fetchLeaves();
       toast.success('Leave request cancelled');
     } catch (err: any) {

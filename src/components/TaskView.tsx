@@ -42,7 +42,7 @@ function TaskView({ user }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.tasks.getEmployeeTasks(user.employee_id);
+      const data = await api.tasks.getMyTasks();
       setTasks(data || []);
     } catch (err) {
       console.error('Error fetching tasks:', err);
@@ -65,7 +65,7 @@ function TaskView({ user }: Props) {
   const onDone = async () => {
     if (!sel) return;
     try {
-      await api.tasks.markComplete(sel.task_id, user.employee_id!, true);
+      await api.tasks.markComplete(sel.task_id, true);
       await fetchTasks();
       setConfirm(false);
       setNote('');

@@ -22,8 +22,8 @@ export default function NotificationBell({ empId }: Props) {
     try {
       const today = new Date().toISOString().slice(0, 10);
       const [taskRes, leaveRes] = await Promise.allSettled([
-        api.tasks.getEmployeeTasks(empId),
-        api.leaves.getByEmployee(empId),
+        api.tasks.getMyTasks(),
+        api.leaves.getMy(),
       ]);
       const notifs: NotifItem[] = [];
       if (taskRes.status === 'fulfilled') {
