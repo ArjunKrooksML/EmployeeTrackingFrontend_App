@@ -3,6 +3,7 @@ import { Plus, Trash2, Paperclip, X, ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api';
 import type { ExpenseResp, ExpItem } from '../lib/api';
 import { useToast } from './Toast';
+import { useConfirm } from './ConfirmDialog';
 import { expBadge, paidBadge } from '../utils/helpers';
 
 const calcTotal = (items: ExpItem[]) => items.reduce((s, i) => s + Number(i.amount || 0), 0);
@@ -39,6 +40,7 @@ const STATUS_TABS: { key: StatusTab; label: string }[] = [
 
 export default function ExpensesView() {
   const toast = useToast();
+  const confirm = useConfirm();
   const fileRef = useRef<HTMLInputElement>(null);
   const [expenses, setExpenses] = useState<ExpenseResp[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,12 @@ export default function ExpensesView() {
   const [items, setItems] = useState<FormItem[]>([{ description: '', amount: '', date: new Date().toISOString().slice(0, 10) }]);
   const [files, setFiles] = useState<File[]>([]);
   const [compressing, setCompressing] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const [showPayForm, setShowPayForm] = useState(false);
+  const [payAmount, setPayAmount] = useState('');
+  const [payRemarks, setPayRemarks] = useState('');
+  const [payBusy, setPayBusy] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -73,7 +81,36 @@ export default function ExpensesView() {
     setMultiDay(false);
     setItems([{ description: '', amount: '', date: today }]);
     setFiles([]);
+    setEditingId(null);
     if (fileRef.current) fileRef.current.value = ''; // clear native input too
+  };
+
+  const startEdit = (e: ExpenseResp) => {
+    setEditingId(e.id);
+    setTitle(e.title);
+    setDate(e.date.slice(0, 10));
+    setDateTo(e.date_to ? e.date_to.slice(0, 10) : '');
+    setMultiDay(!!e.date_to);
+    setItems(e.items.map(it => ({
+      description: it.description,
+      amount: String(it.amount),
+      date: it.date ? it.date.slice(0, 10) : e.date.slice(0, 10),
+    })));
+    setFiles([]);
+    setView('form');
+  };
+
+  const deleteExpense = async (e: ExpenseResp) => {
+    const ok = await confirm({ title: 'Delete Expense', message: 'This will permanently remove this expense statement. This cannot be undone.', confirmLabel: 'Delete', danger: true });
+    if (!ok) return;
+    try {
+      await api.expenses.remove(e.id);
+      toast.success('Expense deleted');
+      setView('list');
+      load();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete expense');
+    }
   };
 
   const addItem = () => setItems(prev => [...prev, { description: '', amount: '', date: date }]);
@@ -86,12 +123,37 @@ export default function ExpensesView() {
     if (!on) setDateTo('');
   };
 
+  const openPayForm = (e: ExpenseResp) => {
+    setPayAmount(String(e.balance));
+    setPayRemarks('');
+    setShowPayForm(true);
+  };
+
+  const submitPayment = async () => {
+    if (!detailExp) return;
+    const amt = Number(payAmount);
+    if (!amt || amt <= 0) return toast.error('Enter a valid amount');
+    if (amt > detailExp.balance) return toast.error(`Amount exceeds balance of ₹${detailExp.balance.toLocaleString('en-IN')}`);
+    setPayBusy(true);
+    try {
+      const updated = await api.expenses.recordPayment(detailExp.id, amt, payRemarks || undefined);
+      setDetailExp(updated);
+      setExpenses(prev => prev.map(x => x.id === updated.id ? updated : x));
+      toast.success('Payment recorded');
+      setShowPayForm(false);
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to record payment');
+    } finally {
+      setPayBusy(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) return toast.error('Title is required');
     if (multiDay && !dateTo) return toast.error('Please set an end date');
     if (multiDay && dateTo < date) return toast.error('End date must be after start date');
     if (items.some(it => !it.description.trim() || !it.amount)) return toast.error('Fill all expense items');
-    if (files.length === 0) return toast.error('Please attach at least one document');
+    if (!editingId && files.length === 0) return toast.error('Please attach at least one document');
     const totalBytes = files.reduce((s, f) => s + f.size, 0);
     if (totalBytes > 25 * 1024 * 1024) return toast.error('Total attachments exceed 25 MB');
     setSubmitting(true);
@@ -100,14 +162,20 @@ export default function ExpensesView() {
       form.append('title', title.trim());
       form.append('date', date);
       if (multiDay && dateTo) form.append('date_to', dateTo);
+      else if (editingId) form.append('clear_date_to', 'true');
       form.append('items', JSON.stringify(items.map(it => ({
         description: it.description.trim(),
         amount: parseFloat(it.amount),
         ...(multiDay ? { date: it.date } : {}),
       }))));
       files.forEach(f => form.append('files', f));
-      await api.expenses.create(form);
-      toast.success('Expense filed successfully');
+      if (editingId) {
+        await api.expenses.update(editingId, form);
+        toast.success('Expense updated');
+      } else {
+        await api.expenses.create(form);
+        toast.success('Expense filed successfully');
+      }
       resetForm();
       setView('list');
       load();
@@ -128,7 +196,7 @@ export default function ExpensesView() {
 
   const ExpCard = ({ e }: { e: ExpenseResp }) => (
     <div
-      onClick={() => { setDetailExp(e); setView('detail'); }}
+      onClick={() => { setDetailExp(e); setShowPayForm(false); setView('detail'); }}
       className="border border-slate-200 rounded-xl p-4 hover:bg-slate-50 cursor-pointer transition"
     >
       <div className="flex items-start justify-between gap-2">
@@ -141,8 +209,11 @@ export default function ExpensesView() {
         </div>
         <div className="flex flex-col items-end gap-1">
           {expBadge(e.status)}
-          {e.status === 'approved' && paidBadge(e.paid)}
+          {e.status === 'approved' && paidBadge(e.paid, e.paid_amount)}
           <span className="text-sm font-semibold text-slate-800">₹{calcTotal(e.items).toLocaleString('en-IN')}</span>
+          {e.status === 'approved' && !e.paid && e.paid_amount > 0 && (
+            <span className="text-xs text-slate-500">Balance ₹{e.balance.toLocaleString('en-IN')}</span>
+          )}
         </div>
       </div>
       {(e.attachments?.length ?? 0) > 0 && (
@@ -168,7 +239,7 @@ export default function ExpensesView() {
           <ArrowLeft size={16} /> Back
         </button>
         <div className="h-4 w-px bg-slate-300" />
-        <h2 className="text-lg font-bold text-slate-800">File Expense Statement</h2>
+        <h2 className="text-lg font-bold text-slate-800">{editingId ? 'Edit Expense Statement' : 'File Expense Statement'}</h2>
       </div>
 
       <div className="space-y-5 max-w-lg">
@@ -270,7 +341,10 @@ export default function ExpensesView() {
         {/* Attachments */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-medium text-slate-600">Attachments <span className="text-red-400">*</span></label>
+            <label className="text-xs font-medium text-slate-600">
+              Attachments {!editingId && <span className="text-red-400">*</span>}
+              {editingId && <span className="text-slate-400 font-normal">(optional — adds to existing)</span>}
+            </label>
             <span className="text-xs text-slate-400">Max 25 MB total</span>
           </div>
           <input
@@ -341,7 +415,7 @@ export default function ExpensesView() {
           </button>
           <button onClick={handleSubmit} disabled={submitting || compressing}
             className="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50 transition">
-            {submitting ? 'Submitting…' : 'Submit Expense'}
+            {submitting ? 'Saving…' : editingId ? 'Save Changes' : 'Submit Expense'}
           </button>
         </div>
       </div>
@@ -364,6 +438,18 @@ export default function ExpensesView() {
           </p>
         </div>
         <div className="ml-2">{expBadge(detailExp.status)}</div>
+        {detailExp.status === 'pending' && (
+          <div className="ml-auto flex items-center gap-2">
+            <button onClick={() => startEdit(detailExp)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-violet-600 border border-violet-200 rounded-lg hover:bg-violet-50 transition">
+              Edit
+            </button>
+            <button onClick={() => deleteExpense(detailExp)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition">
+              <Trash2 size={13} /> Delete
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-5 max-w-lg">
@@ -396,6 +482,63 @@ export default function ExpensesView() {
             </tbody>
           </table>
         </div>
+
+        {detailExp.status === 'approved' && (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Payment:</p>
+              {paidBadge(detailExp.paid, detailExp.paid_amount)}
+            </div>
+            {!detailExp.paid && (
+              <span className="text-sm text-slate-600">Balance: <span className="font-semibold text-slate-800">₹{detailExp.balance.toLocaleString('en-IN')}</span></span>
+            )}
+          </div>
+        )}
+
+        {detailExp.status === 'approved' && !detailExp.paid && (
+          !showPayForm ? (
+            <button onClick={() => openPayForm(detailExp)}
+              className="text-sm font-medium text-violet-600 hover:text-violet-800 transition">
+              Record Payment
+            </button>
+          ) : (
+            <div className="border border-slate-200 rounded-xl p-3 space-y-2 max-w-xs">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  Amount (₹) <span className="text-slate-400 font-normal">— balance ₹{detailExp.balance.toLocaleString('en-IN')}</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={detailExp.balance}
+                  autoFocus
+                  value={payAmount}
+                  onChange={e => setPayAmount(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Remarks (optional)</label>
+                <textarea
+                  rows={2}
+                  value={payRemarks}
+                  onChange={e => setPayRemarks(e.target.value)}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setShowPayForm(false)}
+                  className="px-3 py-1.5 text-xs text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition">
+                  Cancel
+                </button>
+                <button onClick={submitPayment} disabled={payBusy}
+                  className="px-3 py-1.5 text-xs font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50 transition">
+                  {payBusy ? 'Saving…' : 'Confirm Payment'}
+                </button>
+              </div>
+            </div>
+          )
+        )}
 
         {(detailExp.attachments?.length ?? 0) > 0 && (
           <div className="space-y-1">

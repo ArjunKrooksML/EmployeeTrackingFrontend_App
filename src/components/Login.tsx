@@ -17,6 +17,7 @@ type User = {
   da?: number;
   hra?: number;
   others?: number;
+  profile_pic_url?: string | null;
 };
 
 type Props = { onLogin: (u: User) => void };
@@ -55,6 +56,7 @@ export default function Login({ onLogin }: Props) {
         da: emp.da,
         hra: emp.hra,
         others: emp.others,
+        profile_pic_url: emp.profile_pic_url ?? undefined,
       });
     } catch (error: any) {
       setErr(error?.message || 'Login failed. Please check your credentials.');

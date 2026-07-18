@@ -1,7 +1,7 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, FolderKanban, ListChecks, UserCircle, X, LayoutGrid, Home, Wallet, Menu, Package, FileText, Receipt } from 'lucide-react';
-import { ToastProvider } from './components/Toast';
+import { CalendarDays, FolderKanban, ListChecks, UserCircle, X, LayoutGrid, Home, Wallet, Menu, Package, FileText, Receipt, ChevronRight, CreditCard, ImagePlus, Trash2 } from 'lucide-react';
+import { ToastProvider, useToast } from './components/Toast';
 import { ConfirmProvider } from './components/ConfirmDialog';
 import NotificationBell from './components/NotificationBell';
 import Login from './components/Login';
@@ -39,6 +39,7 @@ type User = {
   da?: number;
   hra?: number;
   others?: number;
+  profile_pic_url?: string | null;
 };
 
 type BaseTab = 'dashboard' | 'att' | 'tasks' | 'proj' | 'leaves' | 'payroll' | 'me' | 'orders' | 'dpr' | 'expenses';
@@ -106,29 +107,92 @@ function App() {
     api.auth.logout();
   };
 
+  const updateUser = (patch: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      localStorage.setItem('empUser', JSON.stringify(next));
+      return next;
+    });
+  };
+
   if (!user) return <Login onLogin={handleLogin} />;
 
   return (
     <ToastProvider>
       <ConfirmProvider>
-        <AppInner user={user} handleLogout={handleLogout} />
+        <AppInner user={user} handleLogout={handleLogout} updateUser={updateUser} />
       </ConfirmProvider>
     </ToastProvider>
   );
 }
 
-function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void }) {
+function AppInner({ user, handleLogout, updateUser }: { user: any; handleLogout: () => void; updateUser: (patch: Partial<any>) => void }) {
   const [tab, setTab] = useState<any>('dashboard');
   const [showMenu, setShowMenu] = useState(false);
+  const [showPicSub, setShowPicSub] = useState(false);
+  const [picBusy, setPicBusy] = useState(false);
+  const [cardBusy, setCardBusy] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showChangePass, setShowChangePass] = useState(false);
   const [showDrawer, setShowDrawer] = useState(false);
   const [manageTab, setManageTab] = useState<any>('mg_emps');
   const [tabKey, setTabKey] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   const navigate = (key: any) => {
     if (tab === key) setTabKey(k => k + 1);
     else setTab(key);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    setPicBusy(true);
+    try {
+      const res = await api.profile.upload(f);
+      updateUser({ profile_pic_url: res.profile_pic_url });
+      toast.success('Profile picture updated');
+    } catch (err: any) {
+      toast.error('Upload failed', err?.message);
+    } finally {
+      setPicBusy(false);
+    }
+  };
+
+  const handleRemovePic = async () => {
+    setShowPicSub(false);
+    setShowMenu(false);
+    setPicBusy(true);
+    try {
+      await api.profile.remove();
+      updateUser({ profile_pic_url: null });
+      toast.success('Profile picture removed');
+    } catch (err: any) {
+      toast.error('Failed to remove picture', err?.message);
+    } finally {
+      setPicBusy(false);
+    }
+  };
+
+  const handleCreateIdCard = async () => {
+    setShowMenu(false);
+    setCardBusy(true);
+    const win = window.open('', '_blank');
+    try {
+      const blob = await api.profile.idCard();
+      const url = URL.createObjectURL(blob);
+      if (win) win.location.href = url;
+      else window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err: any) {
+      win?.close();
+      toast.error('Could not generate ID card', err?.message);
+    } finally {
+      setCardBusy(false);
+    }
   };
 
   const role = user.role || 'employee';
@@ -187,16 +251,52 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
                 className="flex items-center gap-2 rounded-full bg-white/20 hover:bg-white/30 px-3 py-1.5 text-sm font-medium transition"
                 title={user.email}
               >
-                <UserCircle size={20} />
+                {user.profile_pic_url ? (
+                  <img src={user.profile_pic_url} alt="" className="h-5 w-5 rounded-full object-cover" />
+                ) : (
+                  <UserCircle size={20} />
+                )}
                 <span className="hidden sm:inline max-w-[120px] truncate">{user.name}</span>
               </button>
               {showMenu && (
-                <div className="absolute right-0 mt-2 w-44 rounded-xl bg-white shadow-xl border border-slate-100 py-1 text-sm text-slate-700 z-50">
+                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white shadow-xl border border-slate-100 py-1 text-sm text-slate-700 z-50">
                   <button className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-t-xl" onClick={() => { setShowMenu(false); setShowProfile(true); }}>View Profile</button>
+                  <div>
+                    <button className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center justify-between" onClick={() => setShowPicSub(v => !v)}>
+                      <span>Change Profile Picture</span>
+                      <ChevronRight size={14} className={`transition-transform ${showPicSub ? 'rotate-90' : ''}`} />
+                    </button>
+                    {showPicSub && (
+                      <div className="bg-slate-50 border-y border-slate-100">
+                        <button
+                          className="w-full text-left pl-6 pr-3 py-2 hover:bg-slate-100 flex items-center gap-2 disabled:opacity-40"
+                          disabled={picBusy}
+                          onClick={() => { setShowPicSub(false); setShowMenu(false); fileInputRef.current?.click(); }}
+                        >
+                          <ImagePlus size={14} /> Add profile picture
+                        </button>
+                        <button
+                          className="w-full text-left pl-6 pr-3 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 disabled:opacity-40"
+                          disabled={picBusy || !user.profile_pic_url}
+                          onClick={handleRemovePic}
+                        >
+                          <Trash2 size={14} /> Remove profile picture
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 disabled:opacity-40"
+                    disabled={cardBusy}
+                    onClick={handleCreateIdCard}
+                  >
+                    <CreditCard size={14} /> {cardBusy ? 'Generating…' : 'Create ID Card'}
+                  </button>
                   <button className="w-full text-left px-3 py-2 hover:bg-slate-50" onClick={() => { setShowMenu(false); setShowChangePass(true); }}>Change Password</button>
                   <button className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-b-xl" onClick={handleLogout}>Logout</button>
                 </div>
               )}
+              <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
             </div>
           </div>
         </div>
@@ -352,8 +452,12 @@ function AppInner({ user, handleLogout }: { user: any; handleLogout: () => void 
             >
               <button className="absolute top-4 right-4 text-slate-400 hover:text-slate-600" onClick={() => setShowProfile(false)}><X size={20} /></button>
               <div className="text-center space-y-4">
-                <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 text-white flex items-center justify-center text-2xl font-semibold shadow-lg">
-                  {(user.name || user.email).charAt(0).toUpperCase()}
+                <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 text-white flex items-center justify-center text-2xl font-semibold shadow-lg overflow-hidden">
+                  {user.profile_pic_url ? (
+                    <img src={user.profile_pic_url} alt="" className="h-16 w-16 object-cover" />
+                  ) : (
+                    (user.name || user.email).charAt(0).toUpperCase()
+                  )}
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold text-slate-900">{user.name}</h2>

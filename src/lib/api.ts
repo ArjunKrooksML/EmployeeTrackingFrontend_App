@@ -154,17 +154,17 @@ async function apiRequest<T>(
   }
 }
 
-async function apiRequestForm<T>(endpoint: string, body: FormData, retry = true): Promise<T> {
+async function apiRequestForm<T>(endpoint: string, body: FormData, retry = true, method: 'POST' | 'PUT' = 'POST'): Promise<T> {
   const url = `${BACKEND_URL}${endpoint}`;
   const token = getAccessToken();
   const response = await fetch(url, {
-    method: 'POST',
+    method,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body,
   });
   if (response.status === 401 && retry && getRefreshToken()) {
     const newToken = await refreshToken();
-    if (newToken) return apiRequestForm<T>(endpoint, body, false);
+    if (newToken) return apiRequestForm<T>(endpoint, body, false, method);
   }
   if (!response.ok) {
     const err = await response.json().catch(() => ({ detail: response.statusText }));
@@ -201,6 +201,8 @@ export interface ExpenseResp {
   attachments?: { url: string; name: string }[];
   status: 'pending' | 'approved' | 'rejected';
   paid: boolean;
+  paid_amount: number;
+  balance: number;
   remarks?: string;
   created_at: string;
 }
@@ -220,6 +222,7 @@ export interface Employee {
   hra: number;
   others: number;
   role?: string;
+  profile_pic_url?: string | null;
 }
 
 export type Leave = {
@@ -442,6 +445,31 @@ export const api = {
   expenses: {
     mine: (): Promise<ExpenseResp[]> => apiRequest('/expenses/mine'),
     create: (form: FormData): Promise<ExpenseResp> => apiRequestForm('/expenses', form),
+    update: (id: number, form: FormData): Promise<ExpenseResp> => apiRequestForm(`/expenses/${id}`, form, true, 'PUT'),
+    recordPayment: (id: number, amount: number, remarks?: string): Promise<ExpenseResp> =>
+      apiRequest(`/expenses/${id}/payment`, { method: 'PUT', body: JSON.stringify({ amount, remarks }) }),
+    remove: (id: number): Promise<{ message: string }> =>
+      apiRequest(`/expenses/${id}`, { method: 'DELETE' }),
+  },
+  profile: {
+    upload: (file: File): Promise<{ profile_pic_url: string }> => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiRequestForm('/employees/profile-picture', form);
+    },
+    remove: (): Promise<{ message: string }> =>
+      apiRequest('/employees/profile-picture', { method: 'DELETE' }),
+    idCard: async (): Promise<Blob> => {
+      const url = `${BACKEND_URL}/employees/id-card`;
+      let token = getAccessToken();
+      let res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.status === 401 && getRefreshToken()) {
+        token = await refreshToken();
+        res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      }
+      if (!res.ok) throw new Error('Failed to generate ID card');
+      return res.blob();
+    },
   },
   salary: {
     getMy: async (): Promise<SalaryDeduction[]> =>
