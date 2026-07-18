@@ -7,6 +7,27 @@ import { expBadge, paidBadge } from '../utils/helpers';
 
 const calcTotal = (items: ExpItem[]) => items.reduce((s, i) => s + Number(i.amount || 0), 0);
 
+// Downscale + re-encode large photos client-side so mobile uploads don't drag on the network
+const MAX_DIM = 1600;
+const compressImage = async (file: File): Promise<File> => {
+  if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.size < 800 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_DIM / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+};
+
 type FormItem = { description: string; amount: string; date: string };
 type StatusTab = 'all' | 'pending' | 'approved' | 'rejected';
 const STATUS_TABS: { key: StatusTab; label: string }[] = [
@@ -32,6 +53,7 @@ export default function ExpensesView() {
   const [multiDay, setMultiDay] = useState(false);
   const [items, setItems] = useState<FormItem[]>([{ description: '', amount: '', date: new Date().toISOString().slice(0, 10) }]);
   const [files, setFiles] = useState<File[]>([]);
+  const [compressing, setCompressing] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -257,17 +279,28 @@ export default function ExpensesView() {
             multiple
             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
             style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
-            onChange={e => {
-              const picked = Array.from(e.target.files || []);
+            onChange={async e => {
+              const input = e.target;
+              const picked = Array.from(input.files || []);
+              input.value = '';
               if (picked.length === 0) return;
-              setFiles(prev => {
-                const existing = new Set(prev.map(f => f.name + f.size));
-                return [...prev, ...picked.filter(f => !existing.has(f.name + f.size))];
-              });
-              e.target.value = '';
+              setCompressing(true);
+              try {
+                const processed = await Promise.all(picked.map(compressImage));
+                setFiles(prev => {
+                  const existing = new Set(prev.map(f => f.name + f.size));
+                  return [...prev, ...processed.filter(f => !existing.has(f.name + f.size))];
+                });
+              } finally {
+                setCompressing(false);
+              }
             }}
           />
-          {files.length === 0 ? (
+          {compressing ? (
+            <div className="flex flex-col items-center justify-center gap-1.5 w-full py-5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 select-none">
+              <span className="text-sm font-medium">Processing photos…</span>
+            </div>
+          ) : files.length === 0 ? (
             <div
               onClick={() => fileRef.current?.click()}
               className="flex flex-col items-center justify-center gap-1.5 w-full py-5 border-2 border-dashed border-slate-300 hover:border-violet-400 hover:bg-slate-50 rounded-xl cursor-pointer transition select-none">
@@ -306,7 +339,7 @@ export default function ExpensesView() {
             className="px-4 py-2 text-sm text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition">
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={submitting}
+          <button onClick={handleSubmit} disabled={submitting || compressing}
             className="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 disabled:opacity-50 transition">
             {submitting ? 'Submitting…' : 'Submit Expense'}
           </button>
