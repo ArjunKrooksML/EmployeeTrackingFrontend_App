@@ -3,7 +3,7 @@ import { Plus, Trash2, Paperclip, X, ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api';
 import type { ExpenseResp, ExpItem } from '../lib/api';
 import { useToast } from './Toast';
-import { expBadge } from '../utils/helpers';
+import { expBadge, paidBadge } from '../utils/helpers';
 
 const calcTotal = (items: ExpItem[]) => items.reduce((s, i) => s + Number(i.amount || 0), 0);
 
@@ -119,6 +119,7 @@ export default function ExpensesView() {
         </div>
         <div className="flex flex-col items-end gap-1">
           {expBadge(e.status)}
+          {e.status === 'approved' && paidBadge(e.paid)}
           <span className="text-sm font-semibold text-slate-800">₹{calcTotal(e.items).toLocaleString('en-IN')}</span>
         </div>
       </div>

@@ -200,6 +200,7 @@ export interface ExpenseResp {
   items: ExpItem[];
   attachments?: { url: string; name: string }[];
   status: 'pending' | 'approved' | 'rejected';
+  paid: boolean;
   remarks?: string;
   created_at: string;
 }
